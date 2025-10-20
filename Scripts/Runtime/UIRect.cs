@@ -1,8 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
-// using DG.Tweening;
 using UnityEngine.Rendering;
-using UnityEngine.Serialization;
 using Image = UnityEngine.UI.Image;
 
 
@@ -124,7 +123,7 @@ public class UIRect : Image
     private UIRectStyle _startStyle;
     private UIRectStyle _targetStyle;
     private AnimationCurve _currentEaseCurve;
-    private System.Action _onComplete;
+    private Action _onComplete;
 
     /// <summary>
     /// Animates the UIRect style to the target style over the specified duration.
@@ -133,7 +132,7 @@ public class UIRect : Image
     /// <param name="duration">Duration of the animation in seconds</param>
     /// <param name="easeCurve">Optional easing curve (defaults to EaseInOut)</param>
     /// <param name="onComplete">Optional callback invoked when animation completes</param>
-    public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, System.Action onComplete = null)
+    public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, Action onComplete = null)
     {
         _startStyle = Style;
         _targetStyle = style;
@@ -270,7 +269,7 @@ public class UIRect : Image
             (spriteOuterUV.w - spriteOuterUV.y) / 2 + spriteOuterUV.y);
 
         if (vh.currentVertCount > verts.Length)
-            System.Array.Resize(ref verts, verts.Length * 2);
+            Array.Resize(ref verts, verts.Length * 2);
 
         for (int i = 0; i < vh.currentVertCount; i++)
         {
