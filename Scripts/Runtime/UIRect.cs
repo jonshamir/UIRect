@@ -75,19 +75,20 @@ public class UIRect : Image
             _currentStyle.BackgroundColor = fillColor;
             _currentStyle.Radius = radius;
             _currentStyle.Translate = translate;
-            
+
             _currentStyle.BorderColor = borderColor;
             _currentStyle.BorderWidth = borderWidth;
             _currentStyle.BorderAlign = borderAlign;
 
+            _currentStyle.HasShadow = hasShadow;
             _currentStyle.ShadowColor = shadowColor;
             _currentStyle.ShadowSize = shadowSize;
             _currentStyle.ShadowSpread = shadowSpread;
             _currentStyle.ShadowOffset = shadowOffset;
-            
+
             _currentStyle.BevelWidth = bevelWidth;
             _currentStyle.BevelStrength = bevelStrength;
-            
+
             return _currentStyle;
         }
         set => SetStyle(value);
@@ -100,17 +101,18 @@ public class UIRect : Image
         translate = style.Translate ?? translate;
 
         borderColor = style.BorderColor ?? borderColor;
-        borderWidth = Mathf.Max(0,style.BorderWidth ?? borderWidth);
+        borderWidth = style.BorderWidth ?? borderWidth;
         borderAlign = style.BorderAlign ?? borderAlign;
-        
+
+        hasShadow = style.HasShadow ?? hasShadow;
         shadowColor = style.ShadowColor ?? shadowColor;
-        shadowSize = Mathf.Max(0,style.ShadowSize ?? shadowSize);
+        shadowSize = style.ShadowSize ?? shadowSize;
         shadowSpread = style.ShadowSpread ?? shadowSpread;
         shadowOffset = style.ShadowOffset ?? shadowOffset;
-        
-        bevelWidth = Mathf.Max(0,style.BevelWidth ?? bevelWidth);
+
+        bevelWidth = style.BevelWidth ?? bevelWidth;
         bevelStrength = style.BevelStrength ?? bevelStrength;
-        
+
         // Refresh vertex data
         SetVerticesDirty();
     }
