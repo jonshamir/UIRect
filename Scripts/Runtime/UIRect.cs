@@ -75,19 +75,20 @@ public class UIRect : Image
             _currentStyle.BackgroundColor = fillColor;
             _currentStyle.Radius = radius;
             _currentStyle.Translate = translate;
-            
+
             _currentStyle.BorderColor = borderColor;
             _currentStyle.BorderWidth = borderWidth;
             _currentStyle.BorderAlign = borderAlign;
 
+            _currentStyle.HasShadow = hasShadow;
             _currentStyle.ShadowColor = shadowColor;
             _currentStyle.ShadowSize = shadowSize;
             _currentStyle.ShadowSpread = shadowSpread;
             _currentStyle.ShadowOffset = shadowOffset;
-            
+
             _currentStyle.BevelWidth = bevelWidth;
             _currentStyle.BevelStrength = bevelStrength;
-            
+
             return _currentStyle;
         }
         set => SetStyle(value);
@@ -100,55 +101,84 @@ public class UIRect : Image
         translate = style.Translate ?? translate;
 
         borderColor = style.BorderColor ?? borderColor;
-        borderWidth = Mathf.Max(0,style.BorderWidth ?? borderWidth);
+        borderWidth = style.BorderWidth ?? borderWidth;
         borderAlign = style.BorderAlign ?? borderAlign;
-        
+
+        hasShadow = style.HasShadow ?? hasShadow;
         shadowColor = style.ShadowColor ?? shadowColor;
-        shadowSize = Mathf.Max(0,style.ShadowSize ?? shadowSize);
+        shadowSize = style.ShadowSize ?? shadowSize;
         shadowSpread = style.ShadowSpread ?? shadowSpread;
         shadowOffset = style.ShadowOffset ?? shadowOffset;
-        
-        bevelWidth = Mathf.Max(0,style.BevelWidth ?? bevelWidth);
+
+        bevelWidth = style.BevelWidth ?? bevelWidth;
         bevelStrength = style.BevelStrength ?? bevelStrength;
-        
+
         // Refresh vertex data
         SetVerticesDirty();
     }
     
-    private UIRectStyle _prevStyle;
+    // Animation state
+    private bool _isAnimating = false;
+    private float _animationStartTime;
+    private float _animationDuration;
+    private UIRectStyle _startStyle;
     private UIRectStyle _targetStyle;
-    /*
-    private Sequence _sequence;
-    public Sequence AnimateTo(UIRectStyle style, float duration = 0.3f)
+    private AnimationCurve _currentEaseCurve;
+    private System.Action _onComplete;
+
+    /// <summary>
+    /// Animates the UIRect style to the target style over the specified duration.
+    /// </summary>
+    /// <param name="style">The target style to animate to</param>
+    /// <param name="duration">Duration of the animation in seconds</param>
+    /// <param name="easeCurve">Optional easing curve (defaults to EaseInOut)</param>
+    /// <param name="onComplete">Optional callback invoked when animation completes</param>
+    public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, System.Action onComplete = null)
     {
-        _prevStyle = Style;
+        _startStyle = Style;
         _targetStyle = style;
-        
-        _sequence = DOTween.Sequence();
-        _sequence.Append(
-            DOTween.To(
-                () => _t,
-                t =>
-                {
-                    _t = t;
-                    Style = UIRectStyle.Lerp(_prevStyle, _targetStyle, t);
-                },
-                1,
-                duration)
-            .From(0)
-            );
-        return _sequence;
+        _animationStartTime = Time.time;
+        _animationDuration = duration;
+        _currentEaseCurve = easeCurve ?? AnimationCurve.EaseInOut(0, 0, 1, 1);
+        _onComplete = onComplete;
+        _isAnimating = true;
     }
-    */
+
+    /// <summary>
+    /// Stops the current animation if one is running.
+    /// </summary>
+    public void StopAnimation()
+    {
+        _isAnimating = false;
+        _onComplete = null;
+    }
+
     #endregion
 
     #region Private
-    
-    // private Sequence _sequence;
-    private float _t;
 
     // The default shared material instance used for rendering
     public override Material defaultMaterial => GetRectMaterial(UseBevel);
+
+    void Update()
+    {
+        if (_isAnimating)
+        {
+            float elapsed = Time.time - _animationStartTime;
+            float t = Mathf.Clamp01(elapsed / _animationDuration);
+            float easedT = _currentEaseCurve.Evaluate(t);
+
+            Style = UIRectStyle.Lerp(_startStyle, _targetStyle, easedT);
+
+            if (t >= 1f)
+            {
+                _isAnimating = false;
+                Style = _targetStyle; // Ensure we end exactly on target
+                _onComplete?.Invoke();
+                _onComplete = null;
+            }
+        }
+    }
     
     private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
     
