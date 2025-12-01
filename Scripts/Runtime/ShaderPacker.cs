@@ -51,14 +51,19 @@ public static unsafe class ShaderPacker
 		// Clamp alpha to 254 to avoid creating NaN bit patterns
 		// Alpha values of 255 with non-zero RGB create IEEE 754 NaN values
 		byte clampedAlpha = (byte)Math.Min((int)c.a, 254);
-		byte[] bytes = new byte[4] { c.r, c.g, c.b, clampedAlpha };
-		return BitConverter.ToSingle(bytes);
+		uint packed = (uint)(c.r | (c.g << 8) | (c.b << 16) | (clampedAlpha << 24));
+		return UInt32ToSingle(packed);
 	}
-	
+
 	public static Color32 UnpackColor(float c)
 	{
-		byte[] bytes = BitConverter.GetBytes(c);
-		return new Color32(bytes[0], bytes[1], bytes[2], bytes[3]);
+		uint packed = SingleToUInt32(c);
+		return new Color32(
+			(byte)(packed & 0xFF),
+			(byte)((packed >> 8) & 0xFF),
+			(byte)((packed >> 16) & 0xFF),
+			(byte)((packed >> 24) & 0xFF)
+		);
 	}
 	
 	#endregion

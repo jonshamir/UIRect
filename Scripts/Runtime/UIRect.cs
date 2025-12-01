@@ -15,22 +15,23 @@ public class UIRect : Image
     private static Material _material;
     private static Material _material_bevel;
     private static Shader _shader;
+    private static LocalKeyword? _bevelKeyword;
     const string SHADER_NAME = "UI/UIRect";
-    
+
     private static Material GetRectMaterial(bool useBevel)
     {
         _shader ??= Shader.Find(SHADER_NAME);
-        LocalKeyword keyword = new LocalKeyword(_shader, "_USE_BEVELS");
+        _bevelKeyword ??= new LocalKeyword(_shader, "_USE_BEVELS");
 
         if (_material == null)
         {
             _material = new Material(_shader);
-            _material.SetKeyword(keyword, false);
+            _material.SetKeyword(_bevelKeyword.Value, false);
         }
         if (_material_bevel == null)
         {
             _material_bevel = new Material(_shader);
-            _material_bevel.SetKeyword(keyword, true);
+            _material_bevel.SetKeyword(_bevelKeyword.Value, true);
         }
 
         return useBevel ? _material_bevel : _material;
@@ -167,16 +168,54 @@ public class UIRect : Image
             float t = Mathf.Clamp01(elapsed / _animationDuration);
             float easedT = _currentEaseCurve.Evaluate(t);
 
-            Style = UIRectStyle.Lerp(_startStyle, _targetStyle, easedT);
+            // Apply lerped values directly without creating intermediate UIRectStyle
+            ApplyLerpedStyle(_startStyle, _targetStyle, easedT);
+            SetVerticesDirty();
 
             if (t >= 1f)
             {
                 _isAnimating = false;
-                Style = _targetStyle; // Ensure we end exactly on target
+                ApplyLerpedStyle(_startStyle, _targetStyle, 1f);
+                SetVerticesDirty();
                 _onComplete?.Invoke();
                 _onComplete = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Applies lerped style values directly to fields without allocating a new UIRectStyle.
+    /// </summary>
+    private void ApplyLerpedStyle(UIRectStyle s1, UIRectStyle s2, float t)
+    {
+        if (s1.BackgroundColor.HasValue && s2.BackgroundColor.HasValue)
+            fillColor = Color.LerpUnclamped(s1.BackgroundColor.Value, s2.BackgroundColor.Value, t);
+        if (s1.Radius.HasValue && s2.Radius.HasValue)
+            radius = Vector4.LerpUnclamped(s1.Radius.Value, s2.Radius.Value, t);
+        if (s1.Translate.HasValue && s2.Translate.HasValue)
+            translate = Vector3.LerpUnclamped(s1.Translate.Value, s2.Translate.Value, t);
+
+        if (s1.BorderColor.HasValue && s2.BorderColor.HasValue)
+            borderColor = Color.LerpUnclamped(s1.BorderColor.Value, s2.BorderColor.Value, t);
+        if (s1.BorderWidth.HasValue && s2.BorderWidth.HasValue)
+            borderWidth = Mathf.LerpUnclamped(s1.BorderWidth.Value, s2.BorderWidth.Value, t);
+
+        // Use target value for bool (no lerp)
+        if (s2.HasShadow.HasValue)
+            hasShadow = s2.HasShadow.Value;
+        if (s1.ShadowColor.HasValue && s2.ShadowColor.HasValue)
+            shadowColor = Color.LerpUnclamped(s1.ShadowColor.Value, s2.ShadowColor.Value, t);
+        if (s1.ShadowSize.HasValue && s2.ShadowSize.HasValue)
+            shadowSize = Mathf.LerpUnclamped(s1.ShadowSize.Value, s2.ShadowSize.Value, t);
+        if (s1.ShadowSpread.HasValue && s2.ShadowSpread.HasValue)
+            shadowSpread = Mathf.LerpUnclamped(s1.ShadowSpread.Value, s2.ShadowSpread.Value, t);
+        if (s1.ShadowOffset.HasValue && s2.ShadowOffset.HasValue)
+            shadowOffset = Vector3.LerpUnclamped(s1.ShadowOffset.Value, s2.ShadowOffset.Value, t);
+
+        if (s1.BevelWidth.HasValue && s2.BevelWidth.HasValue)
+            bevelWidth = Mathf.LerpUnclamped(s1.BevelWidth.Value, s2.BevelWidth.Value, t);
+        if (s1.BevelStrength.HasValue && s2.BevelStrength.HasValue)
+            bevelStrength = Mathf.LerpUnclamped(s1.BevelStrength.Value, s2.BevelStrength.Value, t);
     }
     
     private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
