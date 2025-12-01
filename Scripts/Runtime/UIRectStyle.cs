@@ -15,12 +15,12 @@ public struct UIRectStyle
     public Color? BackgroundColor;
     public Vector4? Radius;
     public Vector3? Translate;
-    
+
     // Border
     public Color? BorderColor;
     public float? BorderWidth;
     public BorderAlign? BorderAlign;
-    
+
     // Shadow
     public bool? HasShadow;
     public Color? ShadowColor;
@@ -31,7 +31,7 @@ public struct UIRectStyle
     // Bevel
     public float? BevelWidth;
     public float? BevelStrength;
-    
+
     public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
     {
         return new UIRectStyle()
