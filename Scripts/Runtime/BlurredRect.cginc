@@ -1,6 +1,8 @@
 // Based on Fast Rounded Rectangle Shadows by Evan Wallace
 // https://madebyevan.com/shaders/fast-rounded-rectangle-shadows/
 
+#define SQRT_HALF 0.70710678  // sqrt(0.5)
+
 // A standard gaussian function, used for weighting samples
 float gaussian(float x, float sigma)
 {
@@ -28,7 +30,7 @@ float roundedBoxShadowX(float x, float y, float sigma, half4 radius, float2 half
   // roundedBoxShadowX
   float delta = min(halfSize.y - radius.x - abs(y), 0.0);
   float curved = halfSize.x - radius.x + sqrt(max(0.0, radius.x * radius.x - delta * delta));
-  float2 integral = 0.5 + 0.5 * erf((x + float2(-curved, curved)) * (sqrt(0.5) / sigma));
+  float2 integral = 0.5 + 0.5 * erf((x + float2(-curved, curved)) * (SQRT_HALF / sigma));
   return integral.y - integral.x;
 }
 

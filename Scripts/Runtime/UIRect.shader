@@ -62,7 +62,11 @@ Shader "UI/UIRect"
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
             #pragma multi_compile_local __ _USE_BEVELS
 
- 
+            // Precomputed constants
+            #define INV_GAMMA 0.45454545      // 1/2.2
+            #define GAMMA 2.2
+            #define LIGHT_DIR float3(0, 0.70710678, 0.70710678)  // normalize(0,1,1)
+
             struct appdata_t
             {
                 float4 vertex : POSITION;
@@ -71,8 +75,8 @@ Shader "UI/UIRect"
                 half4 color : COLOR;
                 float4 uv0 : TEXCOORD0;
                 float4 uv1 : TEXCOORD1;
-				float4 uv2 : TEXCOORD2;
-				float4 uv3 : TEXCOORD3;
+                float4 uv2 : TEXCOORD2;
+                float4 uv3 : TEXCOORD3;
 
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -129,7 +133,7 @@ Shader "UI/UIRect"
  
             half4 frag(v2f IN) : SV_Target
             {
-                half4 texColor = pow(tex2D(_MainTex, IN.uv) + _TextureSampleAdd, 1/2.2);
+                half4 texColor = pow(tex2D(_MainTex, IN.uv) + _TextureSampleAdd, INV_GAMMA);
                 half4 color = texColor * IN.color * IN.fillColor;
                 
                 #ifdef UNITY_UI_CLIP_RECT
@@ -191,7 +195,7 @@ Shader "UI/UIRect"
                     float3 normal = normalize(float3(g.xy, 1)); // n = (1, 0, ∂x) ⨯ (0, 1, ∂y) = (-∂x, -∂y, 1)
 
                     // Calculate Blinn reflectance
-                    float3 lightDir = normalize(float3(0, 1, 1)); // Directional light
+                    float3 lightDir = LIGHT_DIR; // Directional light (precomputed)
                     half3 reflection = reflect(lightDir, normal);
                 
                     float shininess = 10;
