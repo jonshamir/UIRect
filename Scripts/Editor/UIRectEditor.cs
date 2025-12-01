@@ -1,10 +1,36 @@
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 [CustomEditor(typeof(UIRect)), CanEditMultipleObjects]
 public class UIRectEditor : Editor
 {
+    [MenuItem("GameObject/UI/UIRect", false, 2010)]
+    static void CreateUIRect(MenuCommand menuCommand)
+    {
+        GameObject go = new GameObject("UIRect");
+        go.AddComponent<UIRect>();
+
+        Canvas canvas = Object.FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            GameObject canvasGO = new GameObject("Canvas");
+            canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvasGO.AddComponent<CanvasScaler>();
+            canvasGO.AddComponent<GraphicRaycaster>();
+        }
+
+        GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject ?? canvas.gameObject);
+
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(100, 100);
+
+        Undo.RegisterCreatedObjectUndo(go, "Create UIRect");
+        Selection.activeObject = go;
+    }
+
     private static bool showBorder;
     private static bool showShadow;
     private static bool showBevel;

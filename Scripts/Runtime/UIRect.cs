@@ -41,11 +41,11 @@ public partial class UIRect : Image
 
     public Vector2 Size => rectTransform.rect.size;
 
-    public Color fillColor = new(1, 1, 1, 1);
+    public Color fillColor = new(0.173f, 0.427f, 0.745f, 1);
 
     // top-left | top-right | bottom-right | bottom-left
     public bool independentCorners = true;
-    public Vector4 radius = Vector4.zero;
+    public Vector4 radius = new(15, 15, 15, 15);
     public Vector3 translate = Vector3.zero;
 
     // Border
@@ -58,7 +58,7 @@ public partial class UIRect : Image
     public Color shadowColor = new(0, 0, 0, 0.5f);
     public float shadowSize = 10;
     public float shadowSpread = 0;
-    public Vector3 shadowOffset = new Vector2(5, -5);
+    public Vector3 shadowOffset = new Vector2(0, -5);
 
     // Bevel
     public float bevelWidth = 0;
