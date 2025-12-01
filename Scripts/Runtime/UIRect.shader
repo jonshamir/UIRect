@@ -93,7 +93,8 @@ Shader "UI/UIRect"
                 float4 uv2 : TEXCOORD3;
                 float4 uv3 : TEXCOORD5;
                 float4 worldPosition : TEXCOORD4;
-                
+                float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
+
                 UNITY_VERTEX_OUTPUT_STEREO
             };
  
@@ -112,7 +113,8 @@ Shader "UI/UIRect"
                 v2f OUT;
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
-                OUT.worldPosition = mul(unity_ObjectToWorld, v.vertex);
+                OUT.worldPosition = mul(unity_ObjectToWorld, v.vertex);  // For bevel lighting
+                OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
                 
                 OUT.uv = TRANSFORM_TEX(v.uv0, _MainTex);
@@ -137,7 +139,7 @@ Shader "UI/UIRect"
                 half4 color = texColor * IN.color * IN.fillColor;
                 
                 #ifdef UNITY_UI_CLIP_RECT
-                color.a *= UnityGet2DClipping(IN.worldPosition.xy, _ClipRect);
+                color.a *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
                 #endif
 
                 #ifdef UNITY_UI_ALPHACLIP
