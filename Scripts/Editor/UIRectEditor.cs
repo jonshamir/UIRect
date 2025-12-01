@@ -2,7 +2,6 @@
 using UnityEditor;
 using UnityEngine;
 
-
 [CustomEditor(typeof(UIRect)), CanEditMultipleObjects]
 public class UIRectEditor : Editor
 {
@@ -20,7 +19,7 @@ public class UIRectEditor : Editor
     SerializedProperty _borderColor;
     SerializedProperty _borderWidth;
     SerializedProperty _borderAlign;
-    
+
     SerializedProperty _shadowEnabled;
     SerializedProperty _shadowColor;
     SerializedProperty _shadowSize;
@@ -41,13 +40,13 @@ public class UIRectEditor : Editor
         _borderColor = serializedObject.FindProperty("borderColor");
         _borderWidth = serializedObject.FindProperty("borderWidth");
         _borderAlign = serializedObject.FindProperty("borderAlign");
-        
+
         _shadowEnabled = serializedObject.FindProperty("hasShadow");
         _shadowColor = serializedObject.FindProperty("shadowColor");
         _shadowSize = serializedObject.FindProperty("shadowSize");
         _shadowSpread = serializedObject.FindProperty("shadowSpread");
         _shadowOffset = serializedObject.FindProperty("shadowOffset");
-        
+
         _bevelWidth = serializedObject.FindProperty("bevelWidth");
         _bevelStrength = serializedObject.FindProperty("bevelStrength");
     }
@@ -111,9 +110,9 @@ public class UIRectEditor : Editor
             EditorGUILayout.PropertyField(_shadowOffset);
         }
         EndFoldOutGroup();
-    
+
         _shadowEnabled.boolValue = _hasShadow;
-        
+
         // _hasBevel = _bevelEnabled.boolValue;
         BeginFoldOutGroup("Bevel", ref showBevel);
         if (showBevel)
@@ -122,9 +121,9 @@ public class UIRectEditor : Editor
             EditorGUILayout.PropertyField(_bevelStrength);
         }
         EndFoldOutGroup();
-    
-        // _bevelEnabled.boolValue = _hasBevel;    
-        
+
+        // _bevelEnabled.boolValue = _hasBevel;
+
         GUILayout.Space(5);
 
         if (EditorGUI.EndChangeCheck())

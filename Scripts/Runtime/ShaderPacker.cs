@@ -1,14 +1,13 @@
 using System;
 using UnityEngine;
 
-
 /// <summary>Methods for packing data to pass from the CPU to the GPU efficiently</summary>
 public static unsafe class ShaderPacker
 {
 	#region Methods
 	#region Public
 	/// <summary>
-	/// Packs 2 floats into a single float. 
+	/// Packs 2 floats into a single float.
 	/// <b>Only use values between 0 and 1.</b>
 	/// <b>There will be a loss in precision.</b>
 	/// </summary>
@@ -32,7 +31,7 @@ public static unsafe class ShaderPacker
 	}
 
 	/// <summary>
-	/// Unpacks a floats into 2 values. 
+	/// Unpacks a floats into 2 values.
 	/// </summary>
 	/// <param name="packed">Packed float.</param>
 	/// <returns>A tuple of 2 unpacked float values</returns>
@@ -45,7 +44,7 @@ public static unsafe class ShaderPacker
 		Vector2 result = new Vector2(aInt, bInt) / 0x0000ffff;
 		return (result.x, result.y);
 	}
-	
+
 	public static float PackColor(Color32 c)
 	{
 		// Clamp alpha to 254 to avoid creating NaN bit patterns
@@ -65,9 +64,9 @@ public static unsafe class ShaderPacker
 			(byte)((packed >> 24) & 0xFF)
 		);
 	}
-	
+
 	#endregion
-	
+
 	#region Private
 	/// <summary>
 	/// Converts <paramref name="value"/> to an unsigned integer.
