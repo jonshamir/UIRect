@@ -1,5 +1,9 @@
 # UIRect
 
+[![Unity 2020.3+](https://img.shields.io/badge/Unity-2020.3%2B-blue.svg)](https://unity.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![openupm](https://img.shields.io/npm/v/com.jonshamir.uirect?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.jonshamir.uirect/)
+
 A powerful, shader-based UI component for Unity that extends the standard Image component with advanced styling capabilities including rounded corners, borders, shadows, and smooth animations - all without external dependencies.
 
 ## Features
@@ -14,9 +18,28 @@ A powerful, shader-based UI component for Unity that extends the standard Image 
 
 ## Installation
 
-1. Add the package to your Unity project's `Packages` folder
-2. Import into your project
-3. Add a `UIRect` component to any UI GameObject (replaces Unity's Image component)
+### Option 1: OpenUPM (Recommended)
+
+Install via [OpenUPM](https://openupm.com/packages/com.jonshamir.uirect/):
+
+```bash
+openupm add com.jonshamir.uirect
+```
+
+### Option 2: Unity Package Manager (Git URL)
+
+1. Open Unity Package Manager (Window > Package Manager)
+2. Click the `+` button and select "Add package from git URL..."
+3. Enter: `https://github.com/jonshamir/UIRect.git?path=Packages/com.jonshamir.uirect`
+
+### Option 3: Manual Installation
+
+1. Clone or download this repository
+2. Copy the `Packages/com.jonshamir.uirect` folder into your project's `Packages` folder
+
+### Getting Started
+
+Add a `UIRect` component to any UI GameObject (replaces Unity's Image component), or use the menu: **GameObject > UI > UIRect**
 
 ## Basic Usage
 
@@ -265,8 +288,12 @@ void Update()
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Credits
 
-Created by Jon Shamir
+Created by [Jon Shamir](https://jonshamir.com)

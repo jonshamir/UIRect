@@ -2,15 +2,27 @@
   "name": "com.jonshamir.uirect",
   "version": "0.1.0",
   "displayName": "UIRect",
-  "description": "Draw nice rectangles with Unity UI",
-  "unity": "2019.1",
-  "unityRelease": "0b5",
-  "documentationUrl": "https://example.com/",
-  "changelogUrl": "https://example.com/changelog.html",
-  "licensesUrl": "https://example.com/licensing.html",
+  "description": "A powerful, shader-based UI component for Unity with rounded corners, borders, shadows, and smooth animations",
+  "unity": "2020.3",
+  "documentationUrl": "https://github.com/jonshamir/UIRect#readme",
+  "changelogUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/CHANGELOG.md",
+  "licensesUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/LICENSE",
+  "keywords": [
+    "ui",
+    "ugui",
+    "rounded",
+    "shadow",
+    "border",
+    "animation",
+    "rounded-corners"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonshamir/UIRect.git"
+  },
   "dependencies": {
     "com.unity.ugui": "1.0.0"
- },
+  },
   "author": {
     "name": "Jon Shamir",
     "email": "jon@studio-normal.com",
