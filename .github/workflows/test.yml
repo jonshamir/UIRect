@@ -41,6 +41,7 @@ jobs:
           testMode: all
           artifactsPath: TestResults
           checkName: Test Results (${{ matrix.unity-version }})
+          packageMode: true
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
