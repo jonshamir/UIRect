@@ -14,7 +14,7 @@
     "shadow",
     "border",
     "css",
-    "rounded-corners"
+    "rounded-rect"
   ],
   "repository": {
     "type": "git",
