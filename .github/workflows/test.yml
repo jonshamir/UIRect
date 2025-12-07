@@ -26,7 +26,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: Library
-          key: Library-${{ matrix.unity-version }}-${{ hashFiles('Packages/com.jonshamir.uirect/**') }}
+          key: Library-${{ matrix.unity-version }}-${{ hashFiles('**/*.cs', 'package.json') }}
           restore-keys: |
             Library-${{ matrix.unity-version }}-
 
@@ -58,8 +58,6 @@ jobs:
 
       - name: Validate package.json
         run: |
-          cd Packages/com.jonshamir.uirect
-
           # Check required fields exist
           if ! jq -e '.name' package.json > /dev/null; then
             echo "Error: package.json missing 'name' field"

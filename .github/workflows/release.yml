@@ -24,7 +24,7 @@ jobs:
 
       - name: Verify package version matches tag
         run: |
-          PACKAGE_VERSION=$(jq -r '.version' Packages/com.jonshamir.uirect/package.json)
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
           TAG_VERSION="${{ steps.version.outputs.VERSION }}"
 
           if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
@@ -40,7 +40,7 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
 
           # Extract the changelog section for this version
-          CHANGELOG=$(awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" Packages/com.jonshamir.uirect/CHANGELOG.md)
+          CHANGELOG=$(awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md)
 
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="Release v$VERSION"
