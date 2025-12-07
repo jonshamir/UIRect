@@ -2,7 +2,7 @@
   "name": "com.jonshamir.uirect",
   "version": "0.1.0",
   "displayName": "UIRect",
-  "description": "A powerful, shader-based UI component for Unity with rounded corners, borders, shadows, and smooth animations",
+  "description": "Draw nice rectangles with Unity UI",
   "unity": "2020.3",
   "documentationUrl": "https://github.com/jonshamir/UIRect#readme",
   "changelogUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/CHANGELOG.md",
@@ -13,7 +13,7 @@
     "rounded",
     "shadow",
     "border",
-    "animation",
+    "css",
     "rounded-corners"
   ],
   "repository": {
