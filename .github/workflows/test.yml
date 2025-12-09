@@ -1,0 +1,93 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test on Unity ${{ matrix.unity-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        unity-version:
+          - 2021.3.35f1
+          - 2022.3.16f1
+          - 6000.0.23f1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache Library folder
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.unity-version }}-${{ hashFiles('**/*.cs', 'package.json') }}
+          restore-keys: |
+            Library-${{ matrix.unity-version }}-
+
+      - name: Run tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: ${{ matrix.unity-version }}
+          testMode: all
+          artifactsPath: TestResults
+          checkName: Test Results (${{ matrix.unity-version }})
+          packageMode: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Test results (${{ matrix.unity-version }})
+          path: TestResults
+
+  validate-package:
+    name: Validate package.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate package.json
+        run: |
+          # Check required fields exist
+          if ! jq -e '.name' package.json > /dev/null; then
+            echo "Error: package.json missing 'name' field"
+            exit 1
+          fi
+
+          if ! jq -e '.version' package.json > /dev/null; then
+            echo "Error: package.json missing 'version' field"
+            exit 1
+          fi
+
+          if ! jq -e '.displayName' package.json > /dev/null; then
+            echo "Error: package.json missing 'displayName' field"
+            exit 1
+          fi
+
+          if ! jq -e '.unity' package.json > /dev/null; then
+            echo "Error: package.json missing 'unity' field"
+            exit 1
+          fi
+
+          # Validate version follows semver
+          VERSION=$(jq -r '.version' package.json)
+          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: version '$VERSION' does not follow semantic versioning"
+            exit 1
+          fi
+
+          echo "package.json validation passed!"
+          echo "Package: $(jq -r '.name' package.json)"
+          echo "Version: $VERSION"
+          echo "Display Name: $(jq -r '.displayName' package.json)"
