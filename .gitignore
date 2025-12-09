@@ -102,3 +102,6 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 .claude
+
+# Samples symlink (actual samples are in Samples~/)
+Samples

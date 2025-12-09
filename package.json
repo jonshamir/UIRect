@@ -27,5 +27,12 @@
     "name": "Jon Shamir",
     "email": "jon@studio-normal.com",
     "url": "https://jonshamir.com"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Samples",
+      "description": "UIRect usage examples",
+      "path": "Samples~"
+    }
+  ]
 }
