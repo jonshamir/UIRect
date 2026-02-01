@@ -106,6 +106,7 @@ public partial class UIRect
 
             verts[i].position.Scale(_offsetScaleCache);
             verts[i].position += center;
+            verts[i].position += GetSkewOffset(i);
 
             verts[i].uv0 -= (Vector4)_uv0OffsetCache;
             verts[i].uv0.Scale(_offsetScaleCache);
@@ -130,6 +131,22 @@ public partial class UIRect
         {
             vh.SetUIVertex(quad[i], vh.currentVertCount - 4 + i);
         }
+    }
+
+    // Returns skew offset for vertex based on its index
+    // Unity UI vertex order: 0=bottom-left, 1=top-left, 2=top-right, 3=bottom-right (counter-clockwise)
+    // skew.x: top corners move right, bottom corners move left
+    // skew.y: left corners move up, right corners move down
+    private Vector3 GetSkewOffset(int vertexIndex)
+    {
+        return vertexIndex switch
+        {
+            0 => new Vector3(-skew.x, skew.y, 0),   // bottom-left
+            1 => new Vector3(skew.x, skew.y, 0),    // top-left
+            2 => new Vector3(skew.x, -skew.y, 0),   // top-right
+            3 => new Vector3(-skew.x, -skew.y, 0),  // bottom-right
+            _ => Vector3.zero
+        };
     }
 
     #endregion

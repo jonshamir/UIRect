@@ -47,6 +47,7 @@ public partial class UIRect : Image
     public bool independentCorners = true;
     public Vector4 radius = new(15, 15, 15, 15);
     public Vector3 translate = Vector3.zero;
+    public Vector2 skew = Vector2.zero;
 
     // Border
     public Color borderColor = new(0, 0, 0, 1);
@@ -80,6 +81,7 @@ public partial class UIRect : Image
                 _currentStyle.BackgroundColor = fillColor;
                 _currentStyle.Radius = radius;
                 _currentStyle.Translate = translate;
+                _currentStyle.Skew = skew;
 
                 _currentStyle.BorderColor = borderColor;
                 _currentStyle.BorderWidth = borderWidth;
@@ -106,6 +108,7 @@ public partial class UIRect : Image
         fillColor = style.BackgroundColor ?? fillColor;
         radius = style.Radius ?? radius;
         translate = style.Translate ?? translate;
+        skew = style.Skew ?? skew;
 
         borderColor = style.BorderColor ?? borderColor;
         borderWidth = style.BorderWidth ?? borderWidth;

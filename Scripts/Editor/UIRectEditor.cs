@@ -40,6 +40,7 @@ public class UIRectEditor : Editor
     SerializedProperty _color;
     SerializedProperty _sprite;
     SerializedProperty _radius;
+    SerializedProperty _skew;
 
     SerializedProperty _fillColor;
     SerializedProperty _borderColor;
@@ -61,6 +62,7 @@ public class UIRectEditor : Editor
         _color = serializedObject.FindProperty("m_Color");
         _sprite = serializedObject.FindProperty("m_Sprite");
         _radius = serializedObject.FindProperty("radius");
+        _skew = serializedObject.FindProperty("skew");
 
         _fillColor = serializedObject.FindProperty("fillColor");
         _borderColor = serializedObject.FindProperty("borderColor");
@@ -108,6 +110,8 @@ public class UIRectEditor : Editor
             var radius = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", box.radius.x), 0);
             _radius.vector4Value = Vector4.one * radius;
         }
+
+        EditorGUILayout.PropertyField(_skew);
 
         GUI.enabled = true;
 

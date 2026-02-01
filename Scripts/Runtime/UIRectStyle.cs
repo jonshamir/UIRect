@@ -15,6 +15,7 @@ public struct UIRectStyle
     public Color? BackgroundColor;
     public Vector4? Radius;
     public Vector3? Translate;
+    public Vector2? Skew;
 
     // Border
     public Color? BorderColor;
@@ -42,6 +43,8 @@ public struct UIRectStyle
                 Vector4.LerpUnclamped((Vector4)s1.Radius, (Vector4)s2.Radius, t),
             Translate = (s1.Translate == null || s2.Translate == null) ? null :
                 Vector3.LerpUnclamped((Vector3)s1.Translate, (Vector3)s2.Translate, t),
+            Skew = (s1.Skew == null || s2.Skew == null) ? null :
+                Vector2.LerpUnclamped((Vector2)s1.Skew, (Vector2)s2.Skew, t),
 
 
             BorderColor = (s1.BorderColor == null || s2.BorderColor == null) ? null :
