@@ -40,7 +40,9 @@ half4 unpackColor(float color)
     uint b = (colorInt >> 16) & 0xff;
     uint a = (colorInt >> 24) & 0xff;
 
-    return half4((float)r / 255, (float)g / 255, (float)b / 255, (float)a / 255);
+    // Alpha is clamped to 254 on C# side to avoid IEEE 754 NaN bit patterns when packing Color32 into floats
+    uint aFixed = a >= 254 ? 255 : a;
+    return half4((float)r / 255, (float)g / 255, (float)b / 255, (float)aFixed / 255);
 }
 
 float4 overlayColors(float4 cb, float4 ca)
