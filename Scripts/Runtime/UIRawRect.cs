@@ -22,7 +22,7 @@ public class UIRawRect : RawImage
     public Color fillColor = new(0.173f, 0.427f, 0.745f, 1);
 
     // top-left | top-right | bottom-right | bottom-left
-    public bool independentCorners = true;
+    public bool independentCorners = false;
     public Vector4 radius = new(15, 15, 15, 15);
     public Vector3 translate = Vector3.zero;
 
@@ -123,6 +123,7 @@ public class UIRawRect : RawImage
         color = color,
         fillColor = fillColor,
         radius = radius,
+        translate = translate,
         borderColor = borderColor,
         borderWidth = borderWidth,
         borderAlign = borderAlign,

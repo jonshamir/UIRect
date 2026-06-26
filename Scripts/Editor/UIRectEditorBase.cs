@@ -19,6 +19,7 @@ public abstract class UIRectEditorBase : Editor
     private SerializedProperty _color;
     private SerializedProperty _independentCorners;
     private SerializedProperty _radius;
+    private SerializedProperty _translate;
 
     private SerializedProperty _fillColor;
     private SerializedProperty _borderColor;
@@ -42,6 +43,7 @@ public abstract class UIRectEditorBase : Editor
         _color = serializedObject.FindProperty("m_Color");
         _independentCorners = serializedObject.FindProperty("independentCorners");
         _radius = serializedObject.FindProperty("radius");
+        _translate = serializedObject.FindProperty("translate");
 
         _fillColor = serializedObject.FindProperty("fillColor");
         _borderColor = serializedObject.FindProperty("borderColor");
@@ -87,6 +89,8 @@ public abstract class UIRectEditorBase : Editor
             var radius = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", _radius.vector4Value.x), 0);
             _radius.vector4Value = Vector4.one * radius;
         }
+
+        EditorGUILayout.PropertyField(_translate);
 
         GUILayout.Space(10);
 

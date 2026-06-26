@@ -18,6 +18,7 @@ public partial class UIRect
         color = color,
         fillColor = fillColor,
         radius = radius,
+        translate = translate,
         borderColor = borderColor,
         borderWidth = borderWidth,
         borderAlign = borderAlign,

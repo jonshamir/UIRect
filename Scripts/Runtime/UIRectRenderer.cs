@@ -15,6 +15,7 @@ public struct UIRectRenderParams
     public Color color;        // Graphic tint, written to the per-vertex color channel
     public Color fillColor;
     public Vector4 radius;     // top-left | top-right | bottom-right | bottom-left
+    public Vector3 translate;  // offset applied to the rendered rect (does not affect layout)
     public Color borderColor;
     public float borderWidth;
     public BorderAlign borderAlign;
@@ -87,10 +88,10 @@ public static class UIRectRenderer
         Vector2 uvCenter = ComputeUV0Center(vh, baseVertCount);
         bool drawShadow = p.hasShadow && (p.shadowSize > 0 || p.shadowOffset != Vector3.zero);
 
-        BuildQuad(ref _mainVertices, vh, baseVertCount, uvCenter, Vector3.zero, p,
+        BuildQuad(ref _mainVertices, vh, baseVertCount, uvCenter, p.translate, p,
             p.fillColor, p.borderWidth * 2, BoxRenderMode.Fill);
         if (drawShadow)
-            BuildQuad(ref _shadowVertices, vh, baseVertCount, uvCenter, p.shadowOffset, p,
+            BuildQuad(ref _shadowVertices, vh, baseVertCount, uvCenter, p.translate + p.shadowOffset, p,
                 p.shadowColor, p.shadowSize, BoxRenderMode.Shadow);
 
         vh.Clear();
