@@ -1,10 +1,19 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
-using Image = UnityEngine.UI.Image;
 
+/// <summary>
+/// RawImage variant of <see cref="UIRect"/>. Renders the same CSS-like rounded rectangle
+/// (corner radii, border, shadow/glow, bevel) but is backed by a raw <see cref="Texture"/>
+/// instead of a sprite, so it can display videos, RenderTextures and other dynamic content.
+///
+/// All styling, mesh generation and animation are shared with <see cref="UIRect"/> via
+/// <see cref="UIRectRenderer"/> and <see cref="UIRectAnimator"/>; this class is only the thin
+/// RawImage-specific shell (serialized fields + Style glue + a few forwarding overrides).
+/// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
-public partial class UIRect : Image
+public class UIRawRect : RawImage
 {
     #region Public Properties
 
@@ -95,12 +104,60 @@ public partial class UIRect : Image
 
     #endregion
 
-    #region Private
+    #region Rendering
 
     // The shared rounded-rect material (see UIRectRenderer)
     public override Material defaultMaterial => UIRectRenderer.GetMaterial(UseBevel);
 
     private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
+
+    protected override void OnPopulateMesh(VertexHelper vh)
+    {
+        base.OnPopulateMesh(vh);
+        UIRectRenderer.Populate(vh, BuildRenderParams());
+    }
+
+    private UIRectRenderParams BuildRenderParams() => new UIRectRenderParams
+    {
+        size = Size,
+        color = color,
+        fillColor = fillColor,
+        radius = radius,
+        borderColor = borderColor,
+        borderWidth = borderWidth,
+        borderAlign = borderAlign,
+        hasShadow = hasShadow,
+        shadowColor = shadowColor,
+        shadowSize = shadowSize,
+        shadowSpread = shadowSpread,
+        shadowOffset = shadowOffset,
+        bevelWidth = bevelWidth,
+        bevelStrength = bevelStrength,
+    };
+
+    #endregion
+
+    #region Animation
+
+    private readonly UIRectAnimator _animator = new UIRectAnimator();
+
+    /// <summary>
+    /// Animates the style to the target style over the specified duration.
+    /// </summary>
+    public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, Action onComplete = null)
+        => _animator.AnimateTo(Style, style, duration, easeCurve, onComplete);
+
+    /// <summary>
+    /// Stops the current animation if one is running.
+    /// </summary>
+    public void StopAnimation() => _animator.Stop();
+
+    void Update()
+    {
+        if (_animator.Tick(out var current))
+            Style = current; // Style setter applies values and marks vertices dirty
+        _animator.FlushCompletion();
+    }
 
     #endregion
 }
