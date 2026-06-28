@@ -1,6 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -10,11 +12,21 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     public float rotationSpeed = 0.2f;
     public float drag = 2f;
 
+    [Header("Click scale wave")]
+    public float scaleDownAmount = 0.6f;    // size at the dip, as a fraction of the rest size
+    public float scaleDuration = 0.2f;      // duration of each scale-down / scale-up tween
+    public float staggerPerUnit = 0.0015f;  // extra start delay (s) per unit distance from the clicked item
+    public float scaleHoldDuration = 2f;    // time spent dipped before items scale back up
+
     private Transform itemsContainer;
     private List<UIRect> menuItems = new List<UIRect>();
+    private List<Vector3> menuItemRestScales = new List<Vector3>();
+    private readonly List<Coroutine> scaleRoutines = new List<Coroutine>();
     private Vector2 lastDragPosition;
     private Vector2 angularVelocity;
     private bool isDragging;
+
+    private Camera eventCamera;
 
     private const float VelocitySmoothing = 0.2f;
 
@@ -22,6 +34,38 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     {
         CreateItemsContainer();
         GenerateMenuItems();
+        SetupHoverRaycasting();
+    }
+
+    // Items face outward (LookRotation along the outward normal), so the near/visible items
+    // face the camera. The GraphicRaycaster's ignoreReversedGraphics (on by default) treats
+    // those as back-facing and skips them, leaving only the far items hittable — so hover never
+    // lands on the item you actually see. Disable that filter and instead drive hit-testing
+    // ourselves via raycastTarget in UpdateItemHoverFacing (front-facing items only).
+    void SetupHoverRaycasting()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        eventCamera = canvas != null && canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+
+        GraphicRaycaster raycaster = GetComponentInParent<GraphicRaycaster>();
+        if (raycaster != null)
+            raycaster.ignoreReversedGraphics = false;
+    }
+
+    // Each frame, make only the camera-facing (near, visible) items raycast targets. This way
+    // the near item wins the hover even when a far item overlaps it on screen, and a hovered
+    // item that rotates to the back drops out (firing OnPointerExit, reverting its border).
+    void UpdateItemHoverFacing()
+    {
+        if (eventCamera == null)
+            return;
+
+        Vector3 camForward = eventCamera.transform.forward;
+        foreach (UIRect item in menuItems)
+        {
+            bool facingCamera = Vector3.Dot(camForward, item.transform.forward) < 0f;
+            item.raycastTarget = facingCamera;
+        }
     }
 
     void CreateItemsContainer()
@@ -50,8 +94,72 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
             UIRect uiRect = item.GetComponent<UIRect>();
             uiRect.fillColor = Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.7f, 1f);
+            uiRect.borderAlign = BorderAlign.Middle;
             menuItems.Add(uiRect);
+            menuItemRestScales.Add(item.transform.localScale);
+
+            SphereMenuItem menuItem = item.AddComponent<SphereMenuItem>();
+            menuItem.menu = this;
         }
+    }
+
+    // Plays two staggered scale "ripples" that both spread outward from the clicked item:
+    // a shrink wave on click, then a grow wave that begins scaleHoldDuration after the click.
+    // Both phases are scheduled in absolute time from the click, so the grow ripple stays a
+    // clean travelling wave (anchored at ~2s for the clicked item) instead of each item just
+    // independently holding. Re-clicking restarts the wave from each item's current scale.
+    public void OnItemClicked(SphereMenuItem clickedItem)
+    {
+        foreach (Coroutine routine in scaleRoutines)
+            if (routine != null)
+                StopCoroutine(routine);
+        scaleRoutines.Clear();
+
+        float clickTime = Time.time;
+        Vector3 clickedPosition = clickedItem.transform.localPosition;
+        for (int i = 0; i < menuItems.Count; i++)
+        {
+            Transform itemTransform = menuItems[i].transform;
+            float distance = Vector3.Distance(itemTransform.localPosition, clickedPosition);
+            float ripple = distance * staggerPerUnit;     // wave-front offset for this item
+            float downAt = ripple;                         // shrink ripple, from the click
+            float upAt = scaleHoldDuration + ripple;       // grow ripple, same outward order
+            scaleRoutines.Add(StartCoroutine(
+                ScaleWave(itemTransform, menuItemRestScales[i], clickTime, downAt, upAt)));
+        }
+    }
+
+    IEnumerator ScaleWave(Transform target, Vector3 restScale, float clickTime, float downAt, float upAt)
+    {
+        yield return WaitUntil(clickTime + downAt);
+        yield return ScaleTo(target, restScale * scaleDownAmount, scaleDuration);
+
+        yield return WaitUntil(clickTime + upAt);
+        yield return ScaleTo(target, restScale, scaleDuration);
+    }
+
+    // Yields until the given absolute (Time.time) moment, so both ripple fronts stay anchored to
+    // the click rather than drifting by however long each scale tween happens to take.
+    IEnumerator WaitUntil(float time)
+    {
+        while (Time.time < time)
+            yield return null;
+    }
+
+    // Smoothly scales from the current localScale to `to`, reading the start fresh so an
+    // interrupted wave continues from wherever the item happens to be.
+    IEnumerator ScaleTo(Transform target, Vector3 to, float duration)
+    {
+        Vector3 from = target.localScale;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            target.localScale = Vector3.LerpUnclamped(from, to, t);
+            yield return null;
+        }
+        target.localScale = to;
     }
 
     public void OnBeginDrag(PointerEventData eventData)
@@ -150,6 +258,8 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     void Update()
     {
+        UpdateItemHoverFacing();
+
         // Always decay - handles "stopped moving but still holding" case
         // During active drag, OnDrag sets velocity fresh so decay doesn't matter
         angularVelocity *= Mathf.Exp(-drag * Time.deltaTime);
