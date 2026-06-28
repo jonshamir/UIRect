@@ -12,6 +12,20 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     public float rotationSpeed = 0.2f;
     public float drag = 2f;
 
+    [Header("Item colors")]
+    // Fill colors for the menu items, picked at random per item. Defaults to the supplied palette.
+    public Color[] itemColors = new Color[]
+    {
+        new Color(0.294f, 0.200f, 0.161f), // #4B3329 cocoa brown
+        new Color(0.227f, 0.180f, 0.212f), // #3A2E36 charcoal eggplant
+        new Color(0.647f, 0.416f, 0.420f), // #A56A6B dusty rose
+        new Color(0.357f, 0.173f, 0.220f), // #5B2C38 wine
+        new Color(0.431f, 0.290f, 0.325f), // #6E4A53 muted plum
+        new Color(0.290f, 0.212f, 0.412f), // #4A3669 indigo
+        new Color(0.737f, 0.361f, 0.275f), // #BC5C46 terracotta
+        new Color(0.486f, 0.373f, 0.486f), // #7C5F7C dusty lavender
+    };
+
     [Header("Click scale wave")]
     public float scaleDownAmount = 0.6f;    // size at the dip, as a fraction of the rest size
     public float scaleDuration = 0.2f;      // duration of each scale-down / scale-up tween
@@ -68,6 +82,15 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
         }
     }
 
+    // Random fill color drawn from the palette. Falls back to the previous random-HSV behavior
+    // if no palette colors are configured.
+    Color PickItemColor()
+    {
+        if (itemColors == null || itemColors.Length == 0)
+            return Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.7f, 1f);
+        return itemColors[Random.Range(0, itemColors.Length)];
+    }
+
     void CreateItemsContainer()
     {
         GameObject container = new GameObject("ItemsContainer");
@@ -93,7 +116,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
             item.transform.localRotation = localRotation;
 
             UIRect uiRect = item.GetComponent<UIRect>();
-            uiRect.fillColor = Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.7f, 1f);
+            uiRect.fillColor = PickItemColor();
             uiRect.borderAlign = BorderAlign.Middle;
             menuItems.Add(uiRect);
             menuItemRestScales.Add(item.transform.localScale);
