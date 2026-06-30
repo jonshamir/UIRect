@@ -65,6 +65,35 @@ public static class UIRectRenderer
         return material;
     }
 
+    // Destroys the cached materials and drops the shader reference. The cache is rebuilt lazily on
+    // the next GetMaterial call, so this is safe to run whenever the statics would otherwise leak:
+    // before an editor domain reload and when a player quits (see the hooks below). The shader is
+    // borrowed from Shader.Find, not owned here, so it is only unreferenced - never destroyed.
+    private static void ReleaseMaterials()
+    {
+        foreach (var material in _materials.Values)
+        {
+            if (material == null)
+                continue;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(material);
+            else
+                UnityEngine.Object.DestroyImmediate(material);
+        }
+        _materials.Clear();
+        _shader = null;
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.InitializeOnLoadMethod]
+    private static void RegisterEditorCleanup()
+        => UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += ReleaseMaterials;
+#endif
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void RegisterRuntimeCleanup()
+        => Application.quitting += ReleaseMaterials;
+
     #endregion
 
     #region Mesh generation

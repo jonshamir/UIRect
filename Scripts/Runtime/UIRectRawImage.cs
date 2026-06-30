@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
-public class UIRectRawImage : RawImage
+public class UIRectRawImage : RawImage, IUIRect
 {
     #region Public Properties
 
@@ -46,61 +46,26 @@ public class UIRectRawImage : RawImage
 
     #region Style
 
-    private UIRectStyle _currentStyle;
-    private bool _styleDirty = true;
-
     public UIRectStyle Style
     {
-        get
-        {
-            if (_styleDirty)
-            {
-                _currentStyle.BackgroundColor = fillColor;
-                _currentStyle.Radius = radius;
-                _currentStyle.Translate = translate;
-
-                _currentStyle.BorderColor = borderColor;
-                _currentStyle.BorderWidth = borderWidth;
-                _currentStyle.BorderAlign = borderAlign;
-
-                _currentStyle.HasShadow = hasShadow;
-                _currentStyle.ShadowColor = shadowColor;
-                _currentStyle.ShadowSize = shadowSize;
-                _currentStyle.ShadowSpread = shadowSpread;
-                _currentStyle.ShadowOffset = shadowOffset;
-
-                _currentStyle.BevelWidth = bevelWidth;
-                _currentStyle.BevelStrength = bevelStrength;
-
-                _styleDirty = false;
-            }
-            return _currentStyle;
-        }
-        set => SetStyle(value);
+        get => this.GetStyle();
+        set { this.ApplyStyle(value); SetVerticesDirty(); }
     }
 
-    private void SetStyle(UIRectStyle style)
-    {
-        fillColor = style.BackgroundColor ?? fillColor;
-        radius = style.Radius ?? radius;
-        translate = style.Translate ?? translate;
-
-        borderColor = style.BorderColor ?? borderColor;
-        borderWidth = style.BorderWidth ?? borderWidth;
-        borderAlign = style.BorderAlign ?? borderAlign;
-
-        hasShadow = style.HasShadow ?? hasShadow;
-        shadowColor = style.ShadowColor ?? shadowColor;
-        shadowSize = style.ShadowSize ?? shadowSize;
-        shadowSpread = style.ShadowSpread ?? shadowSpread;
-        shadowOffset = style.ShadowOffset ?? shadowOffset;
-
-        bevelWidth = style.BevelWidth ?? bevelWidth;
-        bevelStrength = style.BevelStrength ?? bevelStrength;
-
-        _styleDirty = true;
-        SetVerticesDirty();
-    }
+    // IUIRect forwarders — see IUIRect; lets IUIRectExtensions share the style logic with UIRect.
+    Color IUIRect.FillColor { get => fillColor; set => fillColor = value; }
+    Vector4 IUIRect.Radius { get => radius; set => radius = value; }
+    Vector3 IUIRect.Translate { get => translate; set => translate = value; }
+    Color IUIRect.BorderColor { get => borderColor; set => borderColor = value; }
+    float IUIRect.BorderWidth { get => borderWidth; set => borderWidth = value; }
+    BorderAlign IUIRect.BorderAlignment { get => borderAlign; set => borderAlign = value; }
+    bool IUIRect.HasShadow { get => hasShadow; set => hasShadow = value; }
+    Color IUIRect.ShadowColor { get => shadowColor; set => shadowColor = value; }
+    float IUIRect.ShadowSize { get => shadowSize; set => shadowSize = value; }
+    float IUIRect.ShadowSpread { get => shadowSpread; set => shadowSpread = value; }
+    Vector3 IUIRect.ShadowOffset { get => shadowOffset; set => shadowOffset = value; }
+    float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
+    float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }
 
     #endregion
 
@@ -114,27 +79,8 @@ public class UIRectRawImage : RawImage
     protected override void OnPopulateMesh(VertexHelper vh)
     {
         base.OnPopulateMesh(vh);
-        UIRectRenderer.Populate(vh, BuildRenderParams());
+        UIRectRenderer.Populate(vh, this.BuildRenderParams());
     }
-
-    private UIRectRenderParams BuildRenderParams() => new UIRectRenderParams
-    {
-        size = Size,
-        color = color,
-        fillColor = fillColor,
-        radius = radius,
-        translate = translate,
-        borderColor = borderColor,
-        borderWidth = borderWidth,
-        borderAlign = borderAlign,
-        hasShadow = hasShadow,
-        shadowColor = shadowColor,
-        shadowSize = shadowSize,
-        shadowSpread = shadowSpread,
-        shadowOffset = shadowOffset,
-        bevelWidth = bevelWidth,
-        bevelStrength = bevelStrength,
-    };
 
     #endregion
 
@@ -153,12 +99,7 @@ public class UIRectRawImage : RawImage
     /// </summary>
     public void StopAnimation() => _animator.Stop();
 
-    void Update()
-    {
-        if (_animator.Tick(out var current))
-            Style = current; // Style setter applies values and marks vertices dirty
-        _animator.FlushCompletion();
-    }
+    void Update() => this.UpdateAnimation(_animator);
 
     #endregion
 }
