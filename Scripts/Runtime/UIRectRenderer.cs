@@ -182,7 +182,10 @@ public static class UIRectRenderer
 
         Vector4 uv1 = new Vector4(size.x, size.y, packedRadii.x, packedRadii.y);
         Vector4 uv2 = new Vector4(packedFillColor, packedBorderColor, effectWidth, borderAlignOffset);
-        Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, p.bevelStrength, 0);
+        // uv3.z is read as bevelStrength by the fill/bevel path and as shadowSpread by the shadow
+        // path, so the shadow quad must carry shadowSpread here (it has no use for bevelStrength).
+        float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? p.shadowSpread : p.bevelStrength;
+        Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, strengthOrSpread, 0);
 
         float quadSizeOffset = borderAlignOffset * effectWidth;
         if (renderMode == BoxRenderMode.Shadow)
