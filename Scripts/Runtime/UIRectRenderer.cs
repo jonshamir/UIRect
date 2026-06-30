@@ -85,13 +85,13 @@ public static class UIRectRenderer
         if (baseVertCount == 0)
             return; // base graphic produced no geometry - nothing to draw
 
-        Vector2 uvCenter = ComputeUV0Center(vh, baseVertCount);
+        ComputeBaseCenters(vh, baseVertCount, out Vector2 uvCenter, out Vector3 posCenter);
         bool drawShadow = p.hasShadow && (p.shadowSize > 0 || p.shadowOffset != Vector3.zero);
 
-        BuildQuad(ref _mainVertices, vh, baseVertCount, uvCenter, p.translate, p,
+        BuildQuad(ref _mainVertices, vh, baseVertCount, uvCenter, posCenter, p.translate, p,
             p.fillColor, p.borderWidth * 2, BoxRenderMode.Fill);
         if (drawShadow)
-            BuildQuad(ref _shadowVertices, vh, baseVertCount, uvCenter, p.translate + p.shadowOffset, p,
+            BuildQuad(ref _shadowVertices, vh, baseVertCount, uvCenter, posCenter, p.translate + p.shadowOffset, p,
                 p.shadowColor, p.shadowSize, BoxRenderMode.Shadow);
 
         vh.Clear();
@@ -102,22 +102,34 @@ public static class UIRectRenderer
         AddUIVertexQuad(vh, _mainVertices);
     }
 
-    // The uv0 center of the base mesh. Equal to (0.5, 0.5) for a full quad, the sprite-atlas
-    // center for an Image, or the uvRect center for a RawImage - all without type knowledge.
-    private static Vector2 ComputeUV0Center(VertexHelper vh, int count)
+    // Centroids of the base mesh, used as the fixed points the quad is scaled about when it
+    // grows to fit Middle/Outside borders. uvCenter equals (0.5, 0.5) for a full quad, the
+    // sprite-atlas center for an Image, or the uvRect center for a RawImage - all without type
+    // knowledge. posCenter equals the rect's local center, which is offset from the origin when
+    // the pivot is not centered; scaling position about it (rather than the origin) keeps the
+    // SDF-defined shape aligned with the geometry under any anchor/pivot.
+    private static void ComputeBaseCenters(VertexHelper vh, int count,
+        out Vector2 uvCenter, out Vector3 posCenter)
     {
         if (count == 0)
-            return DefaultUVCenter;
+        {
+            uvCenter = DefaultUVCenter;
+            posCenter = Vector3.zero;
+            return;
+        }
 
-        Vector2 sum = Vector2.zero;
+        Vector2 uvSum = Vector2.zero;
+        Vector3 posSum = Vector3.zero;
         UIVertex v = default;
         for (int i = 0; i < count; i++)
         {
             vh.PopulateUIVertex(ref v, i);
-            sum.x += v.uv0.x;
-            sum.y += v.uv0.y;
+            uvSum.x += v.uv0.x;
+            uvSum.y += v.uv0.y;
+            posSum += v.position;
         }
-        return sum / count;
+        uvCenter = uvSum / count;
+        posCenter = posSum / count;
     }
 
     private static void BuildQuad(
@@ -125,6 +137,7 @@ public static class UIRectRenderer
         VertexHelper vh,
         int baseVertCount,
         Vector2 uvCenter,
+        Vector3 posCenter,
         Vector3 center,
         in UIRectRenderParams p,
         Color fill,
@@ -161,7 +174,9 @@ public static class UIRectRenderer
 
             verts[i].color = p.color;
 
+            verts[i].position -= posCenter;
             verts[i].position.Scale(offsetScale);
+            verts[i].position += posCenter;
             verts[i].position += center;
 
             verts[i].uv0 -= uvCenter4;
