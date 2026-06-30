@@ -2,8 +2,8 @@
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(UIRawRect)), CanEditMultipleObjects]
-public class UIRawRectEditor : UIRectEditorBase
+[CustomEditor(typeof(UIRectRawImage)), CanEditMultipleObjects]
+public class UIRectRawImageEditor : UIRectEditorBase
 {
     private SerializedProperty _texture;
     private SerializedProperty _uvRect;
@@ -21,10 +21,10 @@ public class UIRawRectEditor : UIRectEditorBase
         EditorGUILayout.PropertyField(_uvRect, new GUIContent("UV Rect"));
     }
 
-    [MenuItem("GameObject/UI/UIRawRect", false, 2011)]
-    static void CreateUIRawRect(MenuCommand menuCommand)
+    [MenuItem("GameObject/UI/UIRectRawImage", false, 2011)]
+    static void CreateUIRectRawImage(MenuCommand menuCommand)
     {
-        CreateUIRectObject<UIRawRect>("UIRawRect", menuCommand);
+        CreateUIRectObject<UIRectRawImage>("UIRectRawImage", menuCommand);
     }
 }
 #endif

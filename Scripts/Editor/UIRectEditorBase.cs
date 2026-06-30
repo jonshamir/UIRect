@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Shared custom-inspector implementation for <see cref="UIRect"/> (Image) and
-/// <see cref="UIRawRect"/> (RawImage). Both components expose identical serialized style-field
+/// <see cref="UIRectRawImage"/> (RawImage). Both components expose identical serialized style-field
 /// names, so the whole GUI is driven by <see cref="SerializedProperty"/> lookups; subclasses
 /// only supply the type-specific "content source" field via <see cref="DrawContentField"/>.
 /// </summary>
@@ -133,7 +133,7 @@ public abstract class UIRectEditorBase : Editor
 
     #region Menu creation
 
-    /// <summary>Shared "GameObject/UI/..." factory used by the UIRect and UIRawRect menu items.</summary>
+    /// <summary>Shared "GameObject/UI/..." factory used by the UIRect and UIRectRawImage menu items.</summary>
     protected static void CreateUIRectObject<T>(string name, MenuCommand menuCommand) where T : Graphic
     {
         GameObject go = new GameObject(name);

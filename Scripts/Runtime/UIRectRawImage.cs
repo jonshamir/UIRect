@@ -13,7 +13,7 @@ using UnityEngine.UI;
 /// </summary>
 [ExecuteAlways]
 [DisallowMultipleComponent]
-public class UIRawRect : RawImage
+public class UIRectRawImage : RawImage
 {
     #region Public Properties
 

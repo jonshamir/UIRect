@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Graphic-agnostic style-animation state machine. It operates purely on <see cref="UIRectStyle"/>,
-/// so UIRect (Image) and UIRawRect (RawImage) share one implementation. The owning component
+/// so UIRect (Image) and UIRectRawImage (RawImage) share one implementation. The owning component
 /// applies the per-frame style via its own <c>Style</c> setter and drains the completion
 /// callback with <see cref="FlushCompletion"/>.
 /// </summary>

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Snapshot of the style values <see cref="UIRectRenderer"/> needs to build a rounded-rect
-/// mesh. Each component (UIRect / UIRawRect) fills this in from its own serialized fields, so
+/// mesh. Each component (UIRect / UIRectRawImage) fills this in from its own serialized fields, so
 /// the renderer stays agnostic of the underlying graphic type.
 /// </summary>
 public struct UIRectRenderParams
@@ -30,7 +30,7 @@ public struct UIRectRenderParams
 
 /// <summary>
 /// Shared, graphic-type-agnostic rendering core for UIRect-style rounded rectangles.
-/// Both <c>UIRect</c> (Image) and <c>UIRawRect</c> (RawImage) delegate to this, so the
+/// Both <c>UIRect</c> (Image) and <c>UIRectRawImage</c> (RawImage) delegate to this, so the
 /// mesh generation, UV packing, SDF feed and material live in exactly one place.
 ///
 /// The texture is bound by the base graphic (UGUI sets <c>_MainTex</c> from
