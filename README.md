@@ -31,12 +31,12 @@ openupm add com.jonshamir.uirect
 
 1. Open Unity Package Manager (Window > Package Manager)
 2. Click the `+` button and select "Add package from git URL..."
-3. Enter: `https://github.com/jonshamir/UIRect.git?path=Packages/com.jonshamir.uirect`
+3. Enter: `https://github.com/jonshamir/UIRect.git`
 
 ### Option 3: Manual Installation
 
 1. Clone or download this repository
-2. Copy the `Packages/com.jonshamir.uirect` folder into your project's `Packages` folder
+2. Copy the repository folder into your project's `Packages` folder and rename it to `com.jonshamir.uirect`
 
 ### Getting Started
 

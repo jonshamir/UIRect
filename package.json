@@ -5,8 +5,8 @@
   "description": "Draw nice rectangles with Unity UI",
   "unity": "2021.3",
   "documentationUrl": "https://github.com/jonshamir/UIRect#readme",
-  "changelogUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/CHANGELOG.md",
-  "licensesUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/LICENSE",
+  "changelogUrl": "https://github.com/jonshamir/UIRect/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/jonshamir/UIRect/blob/main/LICENSE",
   "keywords": [
     "ui",
     "ugui",
