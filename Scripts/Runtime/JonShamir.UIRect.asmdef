@@ -1,6 +1,6 @@
 {
     "name": "JonShamir.UIRect",
-    "rootNamespace": "",
+    "rootNamespace": "UIRect",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

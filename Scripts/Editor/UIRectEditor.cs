@@ -1,26 +1,29 @@
 #if UNITY_EDITOR
 using UnityEditor;
 
-[CustomEditor(typeof(UIRect)), CanEditMultipleObjects]
-public class UIRectEditor : UIRectEditorBase
+namespace UIRect
 {
-    private SerializedProperty _sprite;
-
-    protected override void OnEnable()
+    [CustomEditor(typeof(UIRectImage)), CanEditMultipleObjects]
+    public class UIRectEditor : UIRectEditorBase
     {
-        base.OnEnable();
-        _sprite = serializedObject.FindProperty("m_Sprite");
-    }
+        private SerializedProperty _sprite;
 
-    protected override void DrawContentField()
-    {
-        EditorGUILayout.PropertyField(_sprite);
-    }
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            _sprite = serializedObject.FindProperty("m_Sprite");
+        }
 
-    [MenuItem("GameObject/UI/UIRect", false, 2010)]
-    static void CreateUIRect(MenuCommand menuCommand)
-    {
-        CreateUIRectObject<UIRect>("UIRect", menuCommand);
+        protected override void DrawContentField()
+        {
+            EditorGUILayout.PropertyField(_sprite);
+        }
+
+        [MenuItem("GameObject/UI/UIRect", false, 2010)]
+        static void CreateUIRect(MenuCommand menuCommand)
+        {
+            CreateUIRectObject<UIRectImage>("UIRect", menuCommand);
+        }
     }
 }
 #endif

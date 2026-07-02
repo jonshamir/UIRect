@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using UnityEngine;
 
-namespace JonShamir.UIRectTests
+namespace UIRect.Tests
 {
     public class UIRectStyleTests
     {

@@ -1,6 +1,6 @@
 {
     "name": "JonShamir.UIRect.Tests",
-    "rootNamespace": "",
+    "rootNamespace": "UIRect.Tests",
     "references": [
         "JonShamir.UIRect"
     ],

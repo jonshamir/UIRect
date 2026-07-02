@@ -2,7 +2,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace JonShamir.UIRectTests
+namespace UIRect.Tests
 {
     public class UIRectRendererTests
     {
