@@ -1,6 +1,6 @@
 {
     "name": "JonShamir.UIRect.Editor",
-    "rootNamespace": "",
+    "rootNamespace": "UIRect",
     "references": [
         "GUID:6773487a1bd214c78962ccf145416a4f"
     ],

@@ -1,9 +1,8 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
-using UIRect;
 
-namespace JonShamir.UIRectTests
+namespace UIRect.Tests
 {
     public class UIRectRendererTests
     {

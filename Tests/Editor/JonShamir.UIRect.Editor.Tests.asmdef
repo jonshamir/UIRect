@@ -1,6 +1,6 @@
 {
     "name": "JonShamir.UIRect.Editor.Tests",
-    "rootNamespace": "",
+    "rootNamespace": "UIRect.Tests.Editor",
     "references": [
         "JonShamir.UIRect",
         "JonShamir.UIRect.Editor"
