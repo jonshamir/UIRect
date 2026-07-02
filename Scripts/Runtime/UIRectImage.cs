@@ -1,21 +1,13 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using Image = UnityEngine.UI.Image;
 
 namespace UIRect
 {
-    /// <summary>
-    /// RawImage variant of <see cref="UIRectImage"/>. Renders the same CSS-like rounded rectangle
-    /// (corner radii, border, shadow/glow, bevel) but is backed by a raw <see cref="Texture"/>
-    /// instead of a sprite, so it can display videos, RenderTextures and other dynamic content.
-    ///
-    /// All styling, mesh generation and animation are shared with <see cref="UIRectImage"/> via
-    /// <see cref="UIRectRenderer"/> and <see cref="UIRectAnimator"/>; this class is only the thin
-    /// RawImage-specific shell (serialized fields + Style glue + a few forwarding overrides).
-    /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public class UIRectRawImage : RawImage, IUIRect
+    public class UIRectImage : Image, IUIRect
     {
         #region Public Properties
 
@@ -54,7 +46,8 @@ namespace UIRect
             set { this.ApplyStyle(value); SetVerticesDirty(); }
         }
 
-        // IUIRect forwarders — see IUIRect; lets IUIRectExtensions share the style logic with UIRectImage.
+        // IUIRect forwarders — let the shared style logic in IUIRectExtensions read/write the
+        // serialized fields without moving them (which would break the public API and serialization).
         Color IUIRect.FillColor { get => fillColor; set => fillColor = value; }
         Vector4 IUIRect.Radius { get => radius; set => radius = value; }
         Vector3 IUIRect.Translate { get => translate; set => translate = value; }
@@ -78,6 +71,7 @@ namespace UIRect
 
         private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
 
+        // Edits the UI vertices with the data read on the GPU (see UIRectRenderer)
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             base.OnPopulateMesh(vh);
@@ -91,8 +85,12 @@ namespace UIRect
         private readonly UIRectAnimator _animator = new UIRectAnimator();
 
         /// <summary>
-        /// Animates the style to the target style over the specified duration.
+        /// Animates the UIRect style to the target style over the specified duration.
         /// </summary>
+        /// <param name="style">The target style to animate to</param>
+        /// <param name="duration">Duration of the animation in seconds</param>
+        /// <param name="easeCurve">Optional easing curve (defaults to EaseInOut)</param>
+        /// <param name="onComplete">Optional callback invoked when animation completes</param>
         public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, Action onComplete = null)
             => _animator.AnimateTo(Style, style, duration, easeCurve, onComplete);
 

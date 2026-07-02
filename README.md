@@ -1,6 +1,6 @@
 # UIRect
 
-[![Unity 2020.3+](https://img.shields.io/badge/Unity-2020.3%2B-blue.svg)](https://unity.com/)
+[![Unity 2021.3+](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)](https://unity.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![openupm](https://img.shields.io/npm/v/com.jonshamir.uirect?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.jonshamir.uirect/)
 
@@ -15,6 +15,7 @@ A powerful, shader-based UI component for Unity that extends the standard Image 
 - **Smooth Animations** - Built-in animation system with custom easing curves
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
+- **RawImage Variant** - `UIRectRawImage` applies the same styling and animation to videos, RenderTextures, and other dynamic textures
 
 ## Installation
 
@@ -39,21 +40,34 @@ openupm add com.jonshamir.uirect
 
 ### Getting Started
 
-Add a `UIRect` component to any UI GameObject (replaces Unity's Image component), or use the menu: **GameObject > UI > UIRect**
+Add a `UIRectImage` component to any UI GameObject (replaces Unity's Image component), or use the menu: **GameObject > UI > UIRect**
+
+To explore a complete example, import the **SphereMenu** sample from the package listing in **Window > Package Manager > UIRect > Samples**.
 
 ## Basic Usage
 
 ### Adding UIRect to Your UI
 
 ```csharp
-// UIRect extends Unity's Image component
-UIRect rect = gameObject.AddComponent<UIRect>();
+// UIRectImage extends Unity's Image component
+UIRectImage rect = gameObject.AddComponent<UIRectImage>();
 
 // Set basic properties
 rect.fillColor = Color.blue;
 rect.radius = new Vector4(20, 20, 20, 20); // All corners 20px
 rect.borderWidth = 5;
 rect.borderColor = Color.white;
+```
+
+### Using UIRectRawImage for Dynamic Textures
+
+`UIRectRawImage` is a `RawImage`-backed variant that applies the exact same styling (rounded corners, borders, shadows, bevels) and the full animation API to a raw `Texture` instead of a sprite. Use it for videos, `RenderTexture`s, and other dynamic content. Add it via **GameObject > UI > UIRectRawImage**, or in code:
+
+```csharp
+UIRectRawImage rect = gameObject.AddComponent<UIRectRawImage>();
+rect.texture = myRenderTexture;
+rect.radius = new Vector4(20, 20, 20, 20);
+rect.Style = cardStyle; // same UIRectStyle / AnimateTo API as UIRectImage
 ```
 
 ### Styling with UIRectStyle
@@ -189,7 +203,7 @@ uiRect.Style = borderUpdate;
 ```csharp
 public class UIRectButton : MonoBehaviour
 {
-    public UIRect uiRect;
+    public UIRectImage uiRect;
 
     private UIRectStyle normalStyle;
     private UIRectStyle hoverStyle;
@@ -269,7 +283,8 @@ void Update()
 ## Performance Notes
 
 - All rendering is GPU-accelerated via custom shader
-- Animation updates occur in `Update()` only while animating
+- Animation ticking runs in `Update()` and early-outs cheaply when the component is idle
+- Animations use unscaled time, so they keep running while the game is paused (`Time.timeScale = 0`)
 - Minimal CPU overhead during animations
 - Supports batching with other UI elements using the same material
 
@@ -282,7 +297,7 @@ void Update()
 
 ## Compatibility
 
-- Unity 2020.3 or later
+- Unity 2021.3 or later
 - Works with Unity UI (uGUI)
 - Compatible with Canvas rendering modes: Screen Space, World Space
 

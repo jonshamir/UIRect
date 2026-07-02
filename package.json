@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "displayName": "UIRect",
   "description": "Draw nice rectangles with Unity UI",
-  "unity": "2020.3",
+  "unity": "2021.3",
   "documentationUrl": "https://github.com/jonshamir/UIRect#readme",
   "changelogUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/CHANGELOG.md",
   "licensesUrl": "https://github.com/jonshamir/UIRect/blob/main/Packages/com.jonshamir.uirect/LICENSE",

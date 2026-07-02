@@ -1,13 +1,14 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
+using UIRect;
 
 namespace JonShamir.UIRectTests.Editor
 {
     public class UIRectEditorTests
     {
         private GameObject _testObject;
-        private global::UIRect _uiRect;
+        private UIRectImage _uiRect;
 
         [SetUp]
         public void SetUp()
@@ -15,7 +16,7 @@ namespace JonShamir.UIRectTests.Editor
             _testObject = new GameObject("TestUIRect");
             _testObject.AddComponent<RectTransform>();
             _testObject.AddComponent<CanvasRenderer>();
-            _uiRect = _testObject.AddComponent<global::UIRect>();
+            _uiRect = _testObject.AddComponent<UIRectImage>();
         }
 
         [TearDown]

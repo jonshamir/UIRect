@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UIRect;
 
 public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -33,7 +34,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     public float scaleHoldDuration = 2f;    // time spent dipped before items scale back up
 
     private Transform itemsContainer;
-    private List<UIRect> menuItems = new List<UIRect>();
+    private List<UIRectImage> menuItems = new List<UIRectImage>();
     private List<Vector3> menuItemRestScales = new List<Vector3>();
     private readonly List<Coroutine> scaleRoutines = new List<Coroutine>();
     private Vector2 lastDragPosition;
@@ -75,7 +76,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
             return;
 
         Vector3 camForward = eventCamera.transform.forward;
-        foreach (UIRect item in menuItems)
+        foreach (UIRectImage item in menuItems)
         {
             bool facingCamera = Vector3.Dot(camForward, item.transform.forward) < 0f;
             item.raycastTarget = facingCamera;
@@ -115,7 +116,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
             item.transform.localPosition = localPosition;
             item.transform.localRotation = localRotation;
 
-            UIRect uiRect = item.GetComponent<UIRect>();
+            UIRectImage uiRect = item.GetComponent<UIRectImage>();
             uiRect.fillColor = PickItemColor();
             uiRect.borderAlign = BorderAlign.Middle;
             menuItems.Add(uiRect);

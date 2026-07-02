@@ -1,13 +1,14 @@
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
+using UIRect;
 
 namespace JonShamir.UIRectTests
 {
     public class UIRectRawImageTests
     {
         private GameObject _testObject;
-        private global::UIRectRawImage _uiRectRawImage;
+        private UIRectRawImage _uiRectRawImage;
 
         [SetUp]
         public void SetUp()
@@ -15,7 +16,7 @@ namespace JonShamir.UIRectTests
             _testObject = new GameObject("TestUIRectRawImage");
             _testObject.AddComponent<RectTransform>();
             _testObject.AddComponent<CanvasRenderer>();
-            _uiRectRawImage = _testObject.AddComponent<global::UIRectRawImage>();
+            _uiRectRawImage = _testObject.AddComponent<UIRectRawImage>();
         }
 
         [TearDown]

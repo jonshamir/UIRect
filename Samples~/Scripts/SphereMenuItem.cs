@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UIRect;
 
 /// <summary>
 /// Adds a hover border to a single SphereMenu item. On pointer enter it animates a border in,
@@ -8,7 +9,7 @@ using UnityEngine.EventSystems;
 /// <c>translate.z</c>) on mouse down and springs back out on mouse up, and on a genuine click it
 /// tells the owning <see cref="SphereMenu"/> to play its scale wave.
 /// </summary>
-[RequireComponent(typeof(UIRect))]
+[RequireComponent(typeof(UIRectImage))]
 public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler
 {
     public Color hoverBorderColor = Color.white;
@@ -24,11 +25,11 @@ public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     // Set by SphereMenu when the item is spawned (falls back to a parent lookup).
     [HideInInspector] public SphereMenu menu;
 
-    private UIRect _uiRect;
+    private UIRectImage _uiRect;
 
     void Awake()
     {
-        _uiRect = GetComponent<UIRect>();
+        _uiRect = GetComponent<UIRectImage>();
         if (menu == null)
             menu = GetComponentInParent<SphereMenu>();
     }

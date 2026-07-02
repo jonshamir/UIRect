@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using UnityEngine;
+using UIRect;
 
 namespace JonShamir.UIRectTests
 {
