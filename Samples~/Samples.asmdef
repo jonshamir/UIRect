@@ -1,10 +1,12 @@
 {
-    "name": "JonShamir.UIRect",
-    "rootNamespace": "UIRect",
-    "references": [],
+    "name": "JonShamir.UIRect.Samples",
+    "rootNamespace": "",
+    "references": [
+        "JonShamir.UIRect"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": true,
+    "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,

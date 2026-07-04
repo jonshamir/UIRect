@@ -1,30 +1,57 @@
 # UIRect
 
-A powerful, shader-based UI component for Unity that extends the standard Image component with advanced styling capabilities including rounded corners, borders, shadows, and smooth animations - all without external dependencies.
+[![Unity 2021.3+](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)](https://unity.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+UIRect is a rounded rectangle-drawing library for Unity UI (a.k.a. uGUI)
+UIRect extends the standard Image component with styling capabilities including rounded corners, borders, shadows, and animations.
+- Basic UI features you would expect - fill, rounding, border, shadow, etc.
+- High-quality, antialiased rendering with
+- Performant, no external dependencies
+- Custom editor for tweaking in Unity
+- Scripting API loosely inspired by CSS
+
+## Why is this needed?
+
+Although Unity has been pushing [UI Toolkit](https://docs.unity3d.com/6000.1/Documentation/Manual/UIElements.html) as the main UI framework for Unity apps, uGUI remains widely used for its simplicity, familiarity and true 3D world-space support.
+However, creating basic effects such as borders and rounded corners remains surprisingly difficult with multiple assets and libraries, some paid and some free, with various issues (Not all effects are supported, no proper antialiasing, performance issues, etc.)
+This package attempts to fix this by creating a free and open source UI primitive to build on.
 
 ## Features
 
 - **Rounded Corners** - Independent control for each corner radius
 - **Borders** - Customizable width, color, and alignment (inside, middle, outside)
 - **Shadows** - Soft shadows with size, spread, offset, and color control
-- **Bevels** - Optional bevel effects for depth
+- **Bevels** - Parallax-mapped bevels with specular highlights
 - **Smooth Animations** - Built-in animation system with custom easing curves
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
+- **RawImage Variant** - `UIRectRawImage` for videos, RenderTextures, and other dynamic textures
 
 ## Installation
 
-1. Add the package to your Unity project's `Packages` folder
-2. Import into your project
-3. Add a `UIRect` component to any UI GameObject (replaces Unity's Image component)
+### Option 1: Unity Package Manager (Git URL)
+
+1. Open Unity Package Manager (Window > Package Manager)
+2. Click the `+` button and select "Add package from git URL..."
+3. Enter: `https://github.com/jonshamir/UIRect.git`
+
+### Option 2: Manual Installation
+
+1. Clone or download this repository
+2. Copy the repository folder into your project's `Packages` folder and rename it to `com.jonshamir.uirect`
+
+### Getting Started
+
+Add a `UIRectImage` component to any UI GameObject (replaces Unity's Image component), or use the menu: **GameObject > UI > UIRect**
 
 ## Basic Usage
 
 ### Adding UIRect to Your UI
 
 ```csharp
-// UIRect extends Unity's Image component
-UIRect rect = gameObject.AddComponent<UIRect>();
+// UIRectImage extends Unity's Image component
+UIRectImage rect = gameObject.AddComponent<UIRectImage>();
 
 // Set basic properties
 rect.fillColor = Color.blue;
@@ -53,9 +80,23 @@ UIRectStyle cardStyle = new UIRectStyle
 uiRect.Style = cardStyle;
 ```
 
-## Animation System
+Any style attributes that are not included (or `null`) will not be overwritten, inspired by CSS.
+All properties in `UIRectStyle` are nullable (`Color?`, `float?`, etc.), allowing partial style updates:
 
-UIRect includes a built-in animation system that smoothly interpolates between styles without requiring DOTween or any other animation library.
+```csharp
+// Only change the border, leave everything else unchanged
+UIRectStyle borderUpdate = new UIRectStyle
+{
+    BorderWidth = 10,
+    BorderColor = Color.red
+    // All other properties remain as they were
+};
+
+uiRect.Style = borderUpdate;
+```
+
+## Animation
+UIRect includes a built-in animation system that smoothly interpolates between styles without requiring an animation library.
 
 ### Simple Animation
 
@@ -71,21 +112,6 @@ UIRectStyle hoverStyle = new UIRectStyle
 uiRect.AnimateTo(hoverStyle, 0.5f);
 ```
 
-### Custom Easing
-
-```csharp
-// Create a bounce curve
-AnimationCurve bounce = new AnimationCurve(
-    new Keyframe(0, 0),
-    new Keyframe(0.3f, 1.3f),  // Overshoot
-    new Keyframe(0.5f, 0.8f),  // Undershoot
-    new Keyframe(0.7f, 1.1f),  // Small bounce
-    new Keyframe(1, 1)
-);
-
-uiRect.AnimateTo(hoverStyle, 1.0f, bounce);
-```
-
 ### Animation with Callback
 
 ```csharp
@@ -95,78 +121,12 @@ uiRect.AnimateTo(targetStyle, 0.5f, null, () =>
 });
 ```
 
-### Built-in Easing Curves
-
-```csharp
-// Linear
-uiRect.AnimateTo(style, 0.5f, AnimationCurve.Linear(0, 0, 1, 1));
-
-// Ease In/Out (default)
-uiRect.AnimateTo(style, 0.5f, AnimationCurve.EaseInOut(0, 0, 1, 1));
-
-// Custom overshoot
-AnimationCurve overshoot = new AnimationCurve(
-    new Keyframe(0, 0),
-    new Keyframe(0.6f, 1.4f),  // 40% overshoot
-    new Keyframe(1, 1)
-);
-uiRect.AnimateTo(style, 0.5f, overshoot);
-```
-
-### Stopping Animations
-
-```csharp
-// Stop any running animation
-uiRect.StopAnimation();
-```
-
-## Property Reference
-
-### Background
-- `fillColor` - Background color (Color)
-- `radius` - Corner radii as Vector4 (top-left, top-right, bottom-right, bottom-left)
-- `translate` - Position offset (Vector3)
-
-### Border
-- `borderColor` - Border color (Color)
-- `borderWidth` - Border thickness in pixels (float)
-- `borderAlign` - Border alignment: Inside, Middle, Outside (BorderAlign enum)
-
-### Shadow
-- `hasShadow` - Enable/disable shadow rendering (bool)
-- `shadowColor` - Shadow color with alpha (Color)
-- `shadowSize` - Shadow blur radius in pixels (float)
-- `shadowSpread` - Shadow expansion before blur (float)
-- `shadowOffset` - Shadow position offset (Vector3)
-
-### Bevel
-- `bevelWidth` - Bevel size in pixels (float)
-- `bevelStrength` - Bevel intensity (float)
-
-## UIRectStyle Properties
-
-All properties in `UIRectStyle` are nullable (`Color?`, `float?`, etc.), allowing partial style updates:
-
-```csharp
-// Only change the border, leave everything else unchanged
-UIRectStyle borderUpdate = new UIRectStyle
-{
-    BorderWidth = 10,
-    BorderColor = Color.red
-    // All other properties remain as they were
-};
-
-uiRect.Style = borderUpdate;
-```
-
-## Advanced Examples
-
 ### Creating a Button Hover Effect
 
 ```csharp
 public class UIRectButton : MonoBehaviour
 {
-    public UIRect uiRect;
+    public UIRectImage uiRect;
 
     private UIRectStyle normalStyle;
     private UIRectStyle hoverStyle;
@@ -185,9 +145,7 @@ public class UIRectButton : MonoBehaviour
         hoverStyle = new UIRectStyle
         {
             BackgroundColor = new Color(0.9f, 0.9f, 1f),
-            BorderWidth = 3,
             BorderColor = Color.blue,
-            Radius = new Vector4(10, 10, 10, 10),
             ShadowSize = 15
         };
 
@@ -206,67 +164,19 @@ public class UIRectButton : MonoBehaviour
 }
 ```
 
-### Animating a Card Flip Effect
-
-```csharp
-IEnumerator FlipCard()
-{
-    // Shrink horizontally
-    UIRectStyle shrinkStyle = new UIRectStyle { Radius = new Vector4(50, 0, 0, 50) };
-    uiRect.AnimateTo(shrinkStyle, 0.15f);
-    yield return new WaitForSeconds(0.15f);
-
-    // Change content/color
-    uiRect.fillColor = Color.red;
-
-    // Expand back
-    UIRectStyle expandStyle = new UIRectStyle { Radius = new Vector4(20, 20, 20, 20) };
-    AnimationCurve bounce = AnimationCurve.EaseInOut(0, 0, 1, 1);
-    uiRect.AnimateTo(expandStyle, 0.15f, bounce);
-}
-```
-
-### Dynamic Shadow Based on Scroll Position
-
-```csharp
-void Update()
-{
-    float scrollAmount = scrollRect.verticalNormalizedPosition;
-
-    UIRectStyle style = new UIRectStyle
-    {
-        ShadowSize = Mathf.Lerp(0, 20, scrollAmount),
-        ShadowOffset = new Vector3(0, Mathf.Lerp(0, -10, scrollAmount), 0)
-    };
-
-    uiRect.Style = style;
-}
-```
-
 ## Performance Notes
 
 - All rendering is GPU-accelerated via custom shader
-- Animation updates occur in `Update()` only while animating
+- Animation ticking runs in `Update()` and early-outs cheaply when the component is idle
+- Animations use unscaled time, so they keep running while the game is paused (`Time.timeScale = 0`)
 - Minimal CPU overhead during animations
-- Supports batching with other UI elements using the same material
-
-## Technical Details
-
-- **Shader**: Uses custom UI shader with SDF-based rounded rectangle rendering
-- **Vertex Data**: Packs style information into UV channels for shader access
-- **Material Caching**: Shares materials between instances for optimal performance
-- **Animation**: LerpUnclamped allows overshoot/undershoot effects in curves
+- Shares materials between instances to supports batching
 
 ## Compatibility
 
-- Unity 2020.3 or later
-- Works with Unity UI (uGUI)
-- Compatible with Canvas rendering modes: Screen Space, World Space
-
-## License
-
-[Add your license information here]
+- Unity 2021.3 or later
 
 ## Credits
 
-Created by Jon Shamir
+Created by [Jon Shamir](https://jonshamir.com)
+Shadow effects based on [Fast Rounded Rectangle Shadows by Evan Wallace](https://madebyevan.com/shaders/fast-rounded-rectangle-shadows/)
