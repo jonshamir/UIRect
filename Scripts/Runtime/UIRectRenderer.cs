@@ -26,6 +26,11 @@ namespace UIRect
         public float shadowSize;
         public float shadowSpread;
         public Vector3 shadowOffset;
+        public bool hasInnerShadow;
+        public Color innerShadowColor;
+        public float innerShadowSize;
+        public float innerShadowSpread;
+        public Vector3 innerShadowOffset;
         public float bevelWidth;
         public float bevelStrength;
     }
@@ -102,6 +107,7 @@ namespace UIRect
 
         private static UIVertex[] _mainVertices = new UIVertex[256];
         private static UIVertex[] _shadowVertices = new UIVertex[256];
+        private static UIVertex[] _innerShadowVertices = new UIVertex[256];
         private static readonly Vector2 DefaultUVCenter = new Vector2(0.5f, 0.5f);
 
         /// <summary>
@@ -118,12 +124,18 @@ namespace UIRect
 
             ComputeBaseCenters(vh, baseVertCount, out Vector2 uvCenter, out Vector3 posCenter);
             bool drawShadow = p.hasShadow && (p.shadowSize > 0 || p.shadowOffset != Vector3.zero);
+            bool drawInnerShadow = p.hasInnerShadow && (p.innerShadowSize > 0 || p.innerShadowOffset != Vector3.zero);
 
             BuildQuad(ref _mainVertices, vh, baseVertCount, uvCenter, posCenter, p.translate, p,
                 p.fillColor, p.borderWidth * 2, BoxRenderMode.Fill);
             if (drawShadow)
                 BuildQuad(ref _shadowVertices, vh, baseVertCount, uvCenter, posCenter, p.translate + p.shadowOffset, p,
                     p.shadowColor, p.shadowSize, BoxRenderMode.Shadow);
+            // Inner shadow stays aligned with the fill (center = p.translate); its offset is applied in
+            // the shader, since the quad's own SDF must match the real shape to clip correctly.
+            if (drawInnerShadow)
+                BuildQuad(ref _innerShadowVertices, vh, baseVertCount, uvCenter, posCenter, p.translate, p,
+                    p.innerShadowColor, p.innerShadowSize, BoxRenderMode.InnerShadow);
 
             vh.Clear();
 
@@ -131,6 +143,9 @@ namespace UIRect
             if (drawShadow)
                 AddUIVertexQuad(vh, _shadowVertices);
             AddUIVertexQuad(vh, _mainVertices);
+            // Add inner shadow last so it renders on top of the fill
+            if (drawInnerShadow)
+                AddUIVertexQuad(vh, _innerShadowVertices);
         }
 
         // Centroids of the base mesh, used as the fixed points the quad is scaled about when it
@@ -189,9 +204,21 @@ namespace UIRect
             float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? p.shadowSpread : p.bevelStrength;
             Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, strengthOrSpread, 0);
 
+            // The inner-shadow path ignores borderColor / borderAlign / bevelWidth, so those slots
+            // carry its spread and 3D offset instead. The offset stays in local (rect) units here;
+            // the shader converts it to pos-space and folds in the Z-driven parallax.
+            if (renderMode == BoxRenderMode.InnerShadow)
+            {
+                Vector3 o = p.innerShadowOffset;
+                uv2 = new Vector4(packedFillColor, o.z, effectWidth, o.x);
+                uv3 = new Vector4((int)renderMode, 0, p.innerShadowSpread, o.y);
+            }
+
             float quadSizeOffset = borderAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
-                quadSizeOffset = effectWidth * 3f + p.shadowSpread; // 3 sigma for the Gaussian blur
+                quadSizeOffset = effectWidth * 3f + p.shadowSpread; // ~3 sigma for the Gaussian blur
+            else if (renderMode == BoxRenderMode.InnerShadow)
+                quadSizeOffset = 0; // inner shadow lives inside the fill footprint
 
             Vector3 offsetScale = new Vector3(
                 (quadSizeOffset + size.x) / size.x,

@@ -34,6 +34,12 @@ namespace UIRect
         float ShadowSpread { get; set; }
         Vector3 ShadowOffset { get; set; }
 
+        bool HasInnerShadow { get; set; }
+        Color InnerShadowColor { get; set; }
+        float InnerShadowSize { get; set; }
+        float InnerShadowSpread { get; set; }
+        Vector3 InnerShadowOffset { get; set; }
+
         float BevelWidth { get; set; }
         float BevelStrength { get; set; }
     }

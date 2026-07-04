@@ -25,6 +25,12 @@ namespace UIRect
             ShadowSpread = h.ShadowSpread,
             ShadowOffset = h.ShadowOffset,
 
+            HasInnerShadow = h.HasInnerShadow,
+            InnerShadowColor = h.InnerShadowColor,
+            InnerShadowSize = h.InnerShadowSize,
+            InnerShadowSpread = h.InnerShadowSpread,
+            InnerShadowOffset = h.InnerShadowOffset,
+
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
         };
@@ -49,6 +55,12 @@ namespace UIRect
             h.ShadowSpread = style.ShadowSpread ?? h.ShadowSpread;
             h.ShadowOffset = style.ShadowOffset ?? h.ShadowOffset;
 
+            h.HasInnerShadow = style.HasInnerShadow ?? h.HasInnerShadow;
+            h.InnerShadowColor = style.InnerShadowColor ?? h.InnerShadowColor;
+            h.InnerShadowSize = style.InnerShadowSize ?? h.InnerShadowSize;
+            h.InnerShadowSpread = style.InnerShadowSpread ?? h.InnerShadowSpread;
+            h.InnerShadowOffset = style.InnerShadowOffset ?? h.InnerShadowOffset;
+
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;
             h.BevelStrength = style.BevelStrength ?? h.BevelStrength;
         }
@@ -69,6 +81,11 @@ namespace UIRect
             shadowSize = h.ShadowSize,
             shadowSpread = h.ShadowSpread,
             shadowOffset = h.ShadowOffset,
+            hasInnerShadow = h.HasInnerShadow,
+            innerShadowColor = h.InnerShadowColor,
+            innerShadowSize = h.InnerShadowSize,
+            innerShadowSpread = h.InnerShadowSpread,
+            innerShadowOffset = h.InnerShadowOffset,
             bevelWidth = h.BevelWidth,
             bevelStrength = h.BevelStrength,
         };

@@ -9,7 +9,7 @@ namespace UIRect
 
     public enum BoxRenderMode
     {
-        Fill, Shadow, Bevel
+        Fill, Shadow, Bevel, InnerShadow
     }
 
     public struct UIRectStyle
@@ -29,6 +29,13 @@ namespace UIRect
         public float? ShadowSize;
         public float? ShadowSpread;
         public Vector3? ShadowOffset;
+
+        // Inner shadow (inset)
+        public bool? HasInnerShadow;
+        public Color? InnerShadowColor;
+        public float? InnerShadowSize;
+        public float? InnerShadowSpread;
+        public Vector3? InnerShadowOffset;
 
         // Bevel
         public float? BevelWidth;
@@ -60,6 +67,16 @@ namespace UIRect
                     Mathf.LerpUnclamped((float)s1.ShadowSpread, (float)s2.ShadowSpread, t),
                 ShadowOffset = (s1.ShadowOffset == null || s2.ShadowOffset == null) ? null :
                     Vector3.LerpUnclamped((Vector3)s1.ShadowOffset, (Vector3)s2.ShadowOffset, t),
+
+                HasInnerShadow = s2.HasInnerShadow ?? s1.HasInnerShadow,  // Use target value (no lerp for bool)
+                InnerShadowColor = (s1.InnerShadowColor == null || s2.InnerShadowColor == null) ? null :
+                    Color.LerpUnclamped((Color)s1.InnerShadowColor, (Color)s2.InnerShadowColor, t),
+                InnerShadowSize = (s1.InnerShadowSize == null || s2.InnerShadowSize == null) ? null :
+                    Mathf.LerpUnclamped((float)s1.InnerShadowSize, (float)s2.InnerShadowSize, t),
+                InnerShadowSpread = (s1.InnerShadowSpread == null || s2.InnerShadowSpread == null) ? null :
+                    Mathf.LerpUnclamped((float)s1.InnerShadowSpread, (float)s2.InnerShadowSpread, t),
+                InnerShadowOffset = (s1.InnerShadowOffset == null || s2.InnerShadowOffset == null) ? null :
+                    Vector3.LerpUnclamped((Vector3)s1.InnerShadowOffset, (Vector3)s2.InnerShadowOffset, t),
 
                 BevelWidth = (s1.BevelWidth == null || s2.BevelWidth == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BevelWidth, (float)s2.BevelWidth, t),

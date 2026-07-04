@@ -15,8 +15,10 @@ namespace UIRect
     {
         private static bool showBorder;
         private static bool showShadow;
+        private static bool showInnerShadow;
         private static bool showBevel;
         private bool _hasShadow;
+        private bool _hasInnerShadow;
 
         private SerializedProperty _color;
         private SerializedProperty _independentCorners;
@@ -33,6 +35,12 @@ namespace UIRect
         private SerializedProperty _shadowSize;
         private SerializedProperty _shadowSpread;
         private SerializedProperty _shadowOffset;
+
+        private SerializedProperty _innerShadowEnabled;
+        private SerializedProperty _innerShadowColor;
+        private SerializedProperty _innerShadowSize;
+        private SerializedProperty _innerShadowSpread;
+        private SerializedProperty _innerShadowOffset;
 
         private SerializedProperty _bevelWidth;
         private SerializedProperty _bevelStrength;
@@ -57,6 +65,12 @@ namespace UIRect
             _shadowSize = serializedObject.FindProperty("shadowSize");
             _shadowSpread = serializedObject.FindProperty("shadowSpread");
             _shadowOffset = serializedObject.FindProperty("shadowOffset");
+
+            _innerShadowEnabled = serializedObject.FindProperty("hasInnerShadow");
+            _innerShadowColor = serializedObject.FindProperty("innerShadowColor");
+            _innerShadowSize = serializedObject.FindProperty("innerShadowSize");
+            _innerShadowSpread = serializedObject.FindProperty("innerShadowSpread");
+            _innerShadowOffset = serializedObject.FindProperty("innerShadowOffset");
 
             _bevelWidth = serializedObject.FindProperty("bevelWidth");
             _bevelStrength = serializedObject.FindProperty("bevelStrength");
@@ -115,6 +129,18 @@ namespace UIRect
             }
             EndFoldOutGroup();
             _shadowEnabled.boolValue = _hasShadow;
+
+            _hasInnerShadow = _innerShadowEnabled.boolValue;
+            BeginFoldOutGroup("Inner Shadow", ref showInnerShadow, ref _hasInnerShadow);
+            if (showInnerShadow)
+            {
+                EditorGUILayout.PropertyField(_innerShadowColor);
+                _innerShadowSize.floatValue = Mathf.Max(EditorGUILayout.FloatField("Inner Shadow Size", _innerShadowSize.floatValue), 0);
+                _innerShadowSpread.floatValue = Mathf.Max(EditorGUILayout.FloatField("Inner Shadow Spread", _innerShadowSpread.floatValue), 0);
+                EditorGUILayout.PropertyField(_innerShadowOffset);
+            }
+            EndFoldOutGroup();
+            _innerShadowEnabled.boolValue = _hasInnerShadow;
 
             BeginFoldOutGroup("Bevel", ref showBevel);
             if (showBevel)

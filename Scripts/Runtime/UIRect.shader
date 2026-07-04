@@ -107,6 +107,7 @@ Shader "UI/UIRect"
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
             #define BOX_RENDER_MODE_BEVEL 2
+            #define BOX_RENDER_MODE_INNER_SHADOW 3
 
             v2f vert(appdata_t v)
             {
@@ -155,6 +156,34 @@ Shader "UI/UIRect"
                 float pixelWidth = fwidth(dist) * 1.1;
 
                 float outerDist = 0;
+
+                // Inner (inset) shadow: painted on top of the fill, clipped to the shape, dark near
+                // the inner edge and fading toward the center. Uses the same blurred-box coverage as
+                // the drop shadow, inverted. Returns early so the border/bevel paths never run for it.
+                if (boxRenderMode == BOX_RENDER_MODE_INNER_SHADOW)
+                {
+                    float spread = IN.uv3.z;
+
+                    // Offset packed in local (rect) units: xy = (uv2.w, uv3.w), z (depth) = uv2.y.
+                    float2 offsetXY = float2(IN.uv2.w, IN.uv3.w);
+                    float offsetZ = IN.uv2.y;
+
+                    // Reuse the bevel path's view direction so a depth (Z) offset parallaxes when the
+                    // quad is viewed at an angle; worldPosition is already interpolated for lighting.
+                    float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
+                    viewDir = UnityWorldToObjectDir(viewDir);
+                    float2 parallax = viewDir.xy / viewDir.z * offsetZ;
+
+                    // Local units → pos-space: pos = (uv*2-1)*size spans twice the local extent.
+                    float2 offset = (offsetXY + parallax) * 2.0;
+
+                    float blur = max(effectWidth, pixelWidth / 3);
+                    float coverage = roundedBoxShadow(pos - offset, IN.size - spread, blur, max(IN.radii * 2 - spread, 0));
+                    float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
+
+                    color.a *= (1 - coverage) * insideMask;
+                    return color;
+                }
 
                 // Add border
                 if (effectWidth > 0 && boxRenderMode == BOX_RENDER_MODE_FILL)

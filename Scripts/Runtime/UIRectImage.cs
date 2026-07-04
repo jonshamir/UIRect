@@ -32,6 +32,13 @@ namespace UIRect
         public float shadowSpread = 0;
         public Vector3 shadowOffset = new Vector2(0, -5);
 
+        // Inner shadow (inset)
+        public bool hasInnerShadow = false;
+        public Color innerShadowColor = new(0, 0, 0, 0.5f);
+        public float innerShadowSize = 10;
+        public float innerShadowSpread = 0;
+        public Vector3 innerShadowOffset = new Vector2(0, -5);
+
         // Bevel
         public float bevelWidth = 0;
         public float bevelStrength = 1;
@@ -59,6 +66,11 @@ namespace UIRect
         float IUIRect.ShadowSize { get => shadowSize; set => shadowSize = value; }
         float IUIRect.ShadowSpread { get => shadowSpread; set => shadowSpread = value; }
         Vector3 IUIRect.ShadowOffset { get => shadowOffset; set => shadowOffset = value; }
+        bool IUIRect.HasInnerShadow { get => hasInnerShadow; set => hasInnerShadow = value; }
+        Color IUIRect.InnerShadowColor { get => innerShadowColor; set => innerShadowColor = value; }
+        float IUIRect.InnerShadowSize { get => innerShadowSize; set => innerShadowSize = value; }
+        float IUIRect.InnerShadowSpread { get => innerShadowSpread; set => innerShadowSpread = value; }
+        Vector3 IUIRect.InnerShadowOffset { get => innerShadowOffset; set => innerShadowOffset = value; }
         float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
         float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }
 
