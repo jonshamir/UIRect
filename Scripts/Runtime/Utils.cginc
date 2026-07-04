@@ -4,7 +4,7 @@
 // .z = ∂f(p)/∂y
 // .yz = ∇f(p) with ‖∇f(p)‖ = 1
 // https://www.shadertoy.com/view/wlcXD2
-float3 sdgRoundedBox(in float2 position, in float2 size, half4 radius)
+float3 sdgRoundedBox(in float2 position, in float2 size, float4 radius)
 {
     radius = radius.yzxw;
     radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
