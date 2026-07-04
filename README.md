@@ -71,14 +71,22 @@ UIRectStyle cardStyle = new UIRectStyle
     Radius = new Vector4(15, 15, 15, 15),
     BorderColor = new Color(0.8f, 0.8f, 0.8f),
     BorderWidth = 2,
-    HasShadow = true,
-    ShadowColor = new Color(0, 0, 0, 0.3f),
-    ShadowSize = 10,
-    ShadowOffset = new Vector3(0, -5, 0)
+    Shadows = new List<UIRectShadow>
+    {
+        new UIRectShadow
+        {
+            color = new Color(0, 0, 0, 0.3f),
+            size = 10,
+            offset = new Vector3(0, -5, 0)
+        }
+    }
 };
 
 uiRect.Style = cardStyle;
 ```
+
+An element can have any number of shadows, outer or inner (`isInner = true`, like CSS `box-shadow: inset`).
+List index 0 is drawn topmost; outer shadows always render behind the fill and inner shadows on top of it.
 
 Any style attributes that are not included (or `null`) will not be overwritten, inspired by CSS.
 All properties in `UIRectStyle` are nullable (`Color?`, `float?`, etc.), allowing partial style updates:

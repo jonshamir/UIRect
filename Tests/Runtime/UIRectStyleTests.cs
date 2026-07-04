@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace UIRect.Tests
                 BackgroundColor = Color.black,
                 Radius = Vector4.zero,
                 BorderWidth = 0f,
-                ShadowSize = 0f
+                Shadows = new List<UIRectShadow> { new UIRectShadow { size = 0f } }
             };
 
             var style2 = new UIRectStyle
@@ -21,7 +22,7 @@ namespace UIRect.Tests
                 BackgroundColor = Color.white,
                 Radius = new Vector4(20, 20, 20, 20),
                 BorderWidth = 10f,
-                ShadowSize = 20f
+                Shadows = new List<UIRectShadow> { new UIRectShadow { size = 20f } }
             };
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
@@ -29,7 +30,7 @@ namespace UIRect.Tests
             Assert.AreEqual(new Color(0.5f, 0.5f, 0.5f, 1f), result.BackgroundColor);
             Assert.AreEqual(new Vector4(10, 10, 10, 10), result.Radius);
             Assert.AreEqual(5f, result.BorderWidth);
-            Assert.AreEqual(10f, result.ShadowSize);
+            Assert.AreEqual(10f, result.Shadows[0].size);
         }
 
         [Test]
@@ -66,17 +67,6 @@ namespace UIRect.Tests
         }
 
         [Test]
-        public void Lerp_BoolProperty_UsesTargetValue()
-        {
-            var style1 = new UIRectStyle { HasShadow = false };
-            var style2 = new UIRectStyle { HasShadow = true };
-
-            var result = UIRectStyle.Lerp(style1, style2, 0.1f);
-
-            Assert.IsTrue(result.HasShadow);
-        }
-
-        [Test]
         public void Lerp_WithOvershoot_AllowsValuesAboveOne()
         {
             var style1 = new UIRectStyle { BorderWidth = 0f };
@@ -99,48 +89,64 @@ namespace UIRect.Tests
         }
 
         [Test]
-        public void Lerp_ShadowOffset_InterpolatesVector3()
+        public void Lerp_Shadows_InterpolatesByIndex()
         {
-            var style1 = new UIRectStyle { ShadowOffset = Vector3.zero };
-            var style2 = new UIRectStyle { ShadowOffset = new Vector3(10, -10, 0) };
+            var style1 = new UIRectStyle
+            {
+                Shadows = new List<UIRectShadow>
+                {
+                    new UIRectShadow { color = Color.black, size = 0f, offset = Vector3.zero },
+                }
+            };
+            var style2 = new UIRectStyle
+            {
+                Shadows = new List<UIRectShadow>
+                {
+                    new UIRectShadow { color = Color.white, size = 20f, offset = new Vector3(10, -10, 4) },
+                }
+            };
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
 
-            Assert.AreEqual(new Vector3(5, -5, 0), result.ShadowOffset);
+            Assert.AreEqual(1, result.Shadows.Count);
+            Assert.AreEqual(new Color(0.5f, 0.5f, 0.5f, 1f), result.Shadows[0].color);
+            Assert.AreEqual(10f, result.Shadows[0].size);
+            Assert.AreEqual(new Vector3(5, -5, 2), result.Shadows[0].offset);
         }
 
         [Test]
-        public void Lerp_InnerShadowBool_UsesTargetValue()
+        public void Lerp_ShadowCountMismatch_ExtraShadowFadesAlpha()
         {
-            var style1 = new UIRectStyle { HasInnerShadow = false };
-            var style2 = new UIRectStyle { HasInnerShadow = true };
+            var shared = new UIRectShadow { color = Color.black, size = 10f };
+            var extra = new UIRectShadow { color = new Color(1, 0, 0, 0.8f), size = 6f, spread = 3f };
 
-            var result = UIRectStyle.Lerp(style1, style2, 0.1f);
-
-            Assert.IsTrue(result.HasInnerShadow);
-        }
-
-        [Test]
-        public void Lerp_InnerShadowOffset_InterpolatesVector3()
-        {
-            var style1 = new UIRectStyle { InnerShadowOffset = Vector3.zero };
-            var style2 = new UIRectStyle { InnerShadowOffset = new Vector3(10, -10, 4) };
+            var style1 = new UIRectStyle { Shadows = new List<UIRectShadow> { shared } };
+            var style2 = new UIRectStyle { Shadows = new List<UIRectShadow> { shared, extra } };
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
 
-            Assert.AreEqual(new Vector3(5, -5, 2), result.InnerShadowOffset);
+            Assert.AreEqual(2, result.Shadows.Count, "Result must keep the longer list's count.");
+            Assert.AreEqual(0.4f, result.Shadows[1].color.a, 1e-4f,
+                "An extra shadow only present in the target fades in: alpha lerps from 0.");
+            Assert.AreEqual(6f, result.Shadows[1].size, "Non-alpha params of an extra shadow stay fixed.");
+            Assert.AreEqual(3f, result.Shadows[1].spread);
+
+            var reverse = UIRectStyle.Lerp(style2, style1, 0.5f);
+
+            Assert.AreEqual(2, reverse.Shadows.Count);
+            Assert.AreEqual(0.4f, reverse.Shadows[1].color.a, 1e-4f,
+                "An extra shadow only present in the source fades out: alpha lerps to 0.");
         }
 
         [Test]
-        public void Lerp_InnerShadowSizeAndSpread_Interpolate()
+        public void Lerp_Shadows_NullSide_ReturnsNull()
         {
-            var style1 = new UIRectStyle { InnerShadowSize = 0f, InnerShadowSpread = 0f };
-            var style2 = new UIRectStyle { InnerShadowSize = 20f, InnerShadowSpread = 8f };
+            var style1 = new UIRectStyle { Shadows = new List<UIRectShadow> { new UIRectShadow { size = 5 } } };
+            var style2 = new UIRectStyle();
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
 
-            Assert.AreEqual(10f, result.InnerShadowSize);
-            Assert.AreEqual(4f, result.InnerShadowSpread);
+            Assert.IsNull(result.Shadows);
         }
 
         [Test]
@@ -154,16 +160,7 @@ namespace UIRect.Tests
             Assert.IsNull(style.BorderColor);
             Assert.IsNull(style.BorderWidth);
             Assert.IsNull(style.BorderAlign);
-            Assert.IsNull(style.HasShadow);
-            Assert.IsNull(style.ShadowColor);
-            Assert.IsNull(style.ShadowSize);
-            Assert.IsNull(style.ShadowSpread);
-            Assert.IsNull(style.ShadowOffset);
-            Assert.IsNull(style.HasInnerShadow);
-            Assert.IsNull(style.InnerShadowColor);
-            Assert.IsNull(style.InnerShadowSize);
-            Assert.IsNull(style.InnerShadowSpread);
-            Assert.IsNull(style.InnerShadowOffset);
+            Assert.IsNull(style.Shadows);
             Assert.IsNull(style.BevelWidth);
             Assert.IsNull(style.BevelStrength);
         }

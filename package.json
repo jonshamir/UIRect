@@ -1,6 +1,6 @@
 {
   "name": "com.jonshamir.uirect",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "UIRect",
   "description": "Draw nice rectangles with Unity UI",
   "unity": "2021.3",

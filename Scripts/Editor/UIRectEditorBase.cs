@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -14,11 +15,8 @@ namespace UIRect
     public abstract class UIRectEditorBase : Editor
     {
         private static bool showBorder;
-        private static bool showShadow;
-        private static bool showInnerShadow;
+        private static bool showShadows;
         private static bool showBevel;
-        private bool _hasShadow;
-        private bool _hasInnerShadow;
 
         private SerializedProperty _color;
         private SerializedProperty _independentCorners;
@@ -30,17 +28,8 @@ namespace UIRect
         private SerializedProperty _borderWidth;
         private SerializedProperty _borderAlign;
 
-        private SerializedProperty _shadowEnabled;
-        private SerializedProperty _shadowColor;
-        private SerializedProperty _shadowSize;
-        private SerializedProperty _shadowSpread;
-        private SerializedProperty _shadowOffset;
-
-        private SerializedProperty _innerShadowEnabled;
-        private SerializedProperty _innerShadowColor;
-        private SerializedProperty _innerShadowSize;
-        private SerializedProperty _innerShadowSpread;
-        private SerializedProperty _innerShadowOffset;
+        private SerializedProperty _shadows;
+        private ReorderableList _shadowList;
 
         private SerializedProperty _bevelWidth;
         private SerializedProperty _bevelStrength;
@@ -60,17 +49,14 @@ namespace UIRect
             _borderWidth = serializedObject.FindProperty("borderWidth");
             _borderAlign = serializedObject.FindProperty("borderAlign");
 
-            _shadowEnabled = serializedObject.FindProperty("hasShadow");
-            _shadowColor = serializedObject.FindProperty("shadowColor");
-            _shadowSize = serializedObject.FindProperty("shadowSize");
-            _shadowSpread = serializedObject.FindProperty("shadowSpread");
-            _shadowOffset = serializedObject.FindProperty("shadowOffset");
-
-            _innerShadowEnabled = serializedObject.FindProperty("hasInnerShadow");
-            _innerShadowColor = serializedObject.FindProperty("innerShadowColor");
-            _innerShadowSize = serializedObject.FindProperty("innerShadowSize");
-            _innerShadowSpread = serializedObject.FindProperty("innerShadowSpread");
-            _innerShadowOffset = serializedObject.FindProperty("innerShadowOffset");
+            _shadows = serializedObject.FindProperty("shadows");
+            _shadowList = new ReorderableList(serializedObject, _shadows,
+                draggable: true, displayHeader: false, displayAddButton: true, displayRemoveButton: true)
+            {
+                elementHeight = 5 * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing) + 8,
+                drawElementCallback = DrawShadowElement,
+                onAddCallback = OnAddShadow,
+            };
 
             _bevelWidth = serializedObject.FindProperty("bevelWidth");
             _bevelStrength = serializedObject.FindProperty("bevelStrength");
@@ -119,28 +105,15 @@ namespace UIRect
             }
             EndFoldOutGroup();
 
-            _hasShadow = _shadowEnabled.boolValue;
-            BeginFoldOutGroup("Shadow / Glow", ref showShadow, ref _hasShadow);
-            if (showShadow)
+            BeginFoldOutGroup($"Shadows ({_shadows.arraySize})", ref showShadows);
+            if (showShadows)
             {
-                EditorGUILayout.PropertyField(_shadowColor);
-                _shadowSize.floatValue = Mathf.Max(EditorGUILayout.FloatField("Shadow Size", _shadowSize.floatValue), 0);
-                EditorGUILayout.PropertyField(_shadowOffset);
+                if (_shadows.hasMultipleDifferentValues)
+                    EditorGUILayout.HelpBox("Shadow lists differ across the selected objects.", MessageType.Info);
+                else
+                    _shadowList.DoLayoutList();
             }
             EndFoldOutGroup();
-            _shadowEnabled.boolValue = _hasShadow;
-
-            _hasInnerShadow = _innerShadowEnabled.boolValue;
-            BeginFoldOutGroup("Inner Shadow", ref showInnerShadow, ref _hasInnerShadow);
-            if (showInnerShadow)
-            {
-                EditorGUILayout.PropertyField(_innerShadowColor);
-                _innerShadowSize.floatValue = Mathf.Max(EditorGUILayout.FloatField("Inner Shadow Size", _innerShadowSize.floatValue), 0);
-                _innerShadowSpread.floatValue = Mathf.Max(EditorGUILayout.FloatField("Inner Shadow Spread", _innerShadowSpread.floatValue), 0);
-                EditorGUILayout.PropertyField(_innerShadowOffset);
-            }
-            EndFoldOutGroup();
-            _innerShadowEnabled.boolValue = _hasInnerShadow;
 
             BeginFoldOutGroup("Bevel", ref showBevel);
             if (showBevel)
@@ -158,6 +131,54 @@ namespace UIRect
                 serializedObject.ApplyModifiedProperties();
             }
         }
+
+        #region Shadow list
+
+        private void DrawShadowElement(Rect rect, int index, bool isActive, bool isFocused)
+        {
+            SerializedProperty element = _shadows.GetArrayElementAtIndex(index);
+
+            // Keep Vector3 fields on a single line even in a narrow inspector.
+            bool wideMode = EditorGUIUtility.wideMode;
+            EditorGUIUtility.wideMode = true;
+
+            rect.y += 4;
+            rect.height = EditorGUIUtility.singleLineHeight;
+            float step = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+
+            EditorGUI.PropertyField(rect, element.FindPropertyRelative("isInner"), new GUIContent("Inner",
+                "Inset shadow drawn inside the shape instead of behind it")); rect.y += step;
+            EditorGUI.PropertyField(rect, element.FindPropertyRelative("color")); rect.y += step;
+            EditorGUI.PropertyField(rect, element.FindPropertyRelative("size")); rect.y += step;
+            EditorGUI.PropertyField(rect, element.FindPropertyRelative("spread")); rect.y += step;
+            EditorGUI.PropertyField(rect, element.FindPropertyRelative("offset"));
+
+            EditorGUIUtility.wideMode = wideMode;
+        }
+
+        // Unity zero-fills the first element added to an empty list, which would be an invisible
+        // shadow (alpha 0, size 0). Start from the defaults instead; further adds keep Unity's
+        // duplicate-previous-element behavior, which is what list editing usually wants.
+        private static void OnAddShadow(ReorderableList list)
+        {
+            int index = list.serializedProperty.arraySize;
+            bool wasEmpty = index == 0;
+            list.serializedProperty.arraySize++;
+            list.index = index;
+
+            if (!wasEmpty)
+                return;
+
+            SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
+            var defaults = UIRectShadow.Default;
+            element.FindPropertyRelative("isInner").boolValue = defaults.isInner;
+            element.FindPropertyRelative("color").colorValue = defaults.color;
+            element.FindPropertyRelative("size").floatValue = defaults.size;
+            element.FindPropertyRelative("spread").floatValue = defaults.spread;
+            element.FindPropertyRelative("offset").vector3Value = defaults.offset;
+        }
+
+        #endregion
 
         #region Menu creation
 
@@ -189,15 +210,6 @@ namespace UIRect
         #endregion
 
         #region Foldout group helpers
-
-        private void BeginFoldOutGroup(string name, ref bool foldOut, ref bool isEnabled)
-        {
-            BeginFoldOutGroupBase(name, ref foldOut);
-            GUILayout.Label("Enable");
-            isEnabled = EditorGUILayout.Toggle(isEnabled, GUILayout.Width(15));
-            GUILayout.EndHorizontal();
-            GUI.enabled = isEnabled;
-        }
 
         private void BeginFoldOutGroup(string name, ref bool foldOut)
         {

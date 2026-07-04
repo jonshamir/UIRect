@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -108,17 +109,40 @@ namespace UIRect.Tests.Editor
         }
 
         [Test]
-        public void UIRect_HasShadow_DefaultsFalse()
+        public void UIRect_Shadows_DefaultsEmpty()
         {
-            Assert.IsFalse(_uiRect.hasShadow);
+            Assert.IsNotNull(_uiRect.shadows);
+            Assert.IsEmpty(_uiRect.shadows);
         }
 
         [Test]
-        public void UIRect_EnableShadow_SetsShadowEnabled()
+        public void UIRect_LegacySerializedShadow_MigratesToShadowList()
         {
-            _uiRect.hasShadow = true;
+            // Simulates loading an asset saved before the shadow list existed: pushing the legacy
+            // fields through the serializer must trigger the migration in OnAfterDeserialize.
+            var so = new SerializedObject(_uiRect);
+            so.FindProperty("hasShadow").boolValue = true;
+            so.FindProperty("shadowColor").colorValue = Color.green;
+            so.FindProperty("shadowSize").floatValue = 12f;
+            so.FindProperty("shadowSpread").floatValue = 2f;
+            so.FindProperty("shadowOffset").vector3Value = new Vector3(1, -2, 0);
+            so.ApplyModifiedProperties();
 
-            Assert.IsTrue(_uiRect.hasShadow);
+            Assert.AreEqual(1, _uiRect.shadows.Count, "Legacy single shadow must migrate into the list.");
+            Assert.AreEqual(Color.green, _uiRect.shadows[0].color);
+            Assert.AreEqual(12f, _uiRect.shadows[0].size);
+            Assert.AreEqual(2f, _uiRect.shadows[0].spread);
+            Assert.AreEqual(new Vector3(1, -2, 0), _uiRect.shadows[0].offset);
+            Assert.IsFalse(_uiRect.shadows[0].isInner);
+        }
+
+        [Test]
+        public void UIRect_AddShadow_IsStored()
+        {
+            _uiRect.shadows.Add(new UIRectShadow { color = Color.black, size = 10 });
+
+            Assert.AreEqual(1, _uiRect.shadows.Count);
+            Assert.AreEqual(10f, _uiRect.shadows[0].size);
         }
     }
 }

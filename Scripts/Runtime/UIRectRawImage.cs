@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +16,7 @@ namespace UIRect
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public class UIRectRawImage : RawImage, IUIRect
+    public class UIRectRawImage : RawImage, IUIRect, ISerializationCallbackReceiver
     {
         #region Public Properties
 
@@ -33,23 +34,30 @@ namespace UIRect
         public float borderWidth = 0;
         public BorderAlign borderAlign = BorderAlign.Inside;
 
-        // Shadow
-        public bool hasShadow = false;
-        public Color shadowColor = new(0, 0, 0, 0.5f);
-        public float shadowSize = 10;
-        public float shadowSpread = 0;
-        public Vector3 shadowOffset = new Vector2(0, -5);
-
-        // Inner shadow (inset)
-        public bool hasInnerShadow = false;
-        public Color innerShadowColor = new(0, 0, 0, 0.5f);
-        public float innerShadowSize = 10;
-        public float innerShadowSpread = 0;
-        public Vector3 innerShadowOffset = new Vector2(0, -5);
+        // Shadows (outer and inner mixed; index 0 is topmost)
+        public List<UIRectShadow> shadows = new();
 
         // Bevel
         public float bevelWidth = 0;
         public float bevelStrength = 1;
+
+        #endregion
+
+        #region Legacy single-shadow fields (pre-list format, kept for migration only)
+
+        // Field names unchanged so old serialized data still binds; UIRectShadowMigration converts
+        // them into `shadows` entries on deserialize, with hasShadow as the idempotence guard.
+        [SerializeField, HideInInspector] private bool hasShadow = false;
+        [SerializeField, HideInInspector] private Color shadowColor = new(0, 0, 0, 0.5f);
+        [SerializeField, HideInInspector] private float shadowSize = 10;
+        [SerializeField, HideInInspector] private float shadowSpread = 0;
+        [SerializeField, HideInInspector] private Vector3 shadowOffset = new Vector2(0, -5);
+
+        public void OnBeforeSerialize() { }
+
+        public void OnAfterDeserialize()
+            => UIRectShadowMigration.Migrate(ref hasShadow, shadowColor, shadowSize, shadowSpread,
+                shadowOffset, shadows);
 
         #endregion
 
@@ -68,16 +76,7 @@ namespace UIRect
         Color IUIRect.BorderColor { get => borderColor; set => borderColor = value; }
         float IUIRect.BorderWidth { get => borderWidth; set => borderWidth = value; }
         BorderAlign IUIRect.BorderAlignment { get => borderAlign; set => borderAlign = value; }
-        bool IUIRect.HasShadow { get => hasShadow; set => hasShadow = value; }
-        Color IUIRect.ShadowColor { get => shadowColor; set => shadowColor = value; }
-        float IUIRect.ShadowSize { get => shadowSize; set => shadowSize = value; }
-        float IUIRect.ShadowSpread { get => shadowSpread; set => shadowSpread = value; }
-        Vector3 IUIRect.ShadowOffset { get => shadowOffset; set => shadowOffset = value; }
-        bool IUIRect.HasInnerShadow { get => hasInnerShadow; set => hasInnerShadow = value; }
-        Color IUIRect.InnerShadowColor { get => innerShadowColor; set => innerShadowColor = value; }
-        float IUIRect.InnerShadowSize { get => innerShadowSize; set => innerShadowSize = value; }
-        float IUIRect.InnerShadowSpread { get => innerShadowSpread; set => innerShadowSpread = value; }
-        Vector3 IUIRect.InnerShadowOffset { get => innerShadowOffset; set => innerShadowOffset = value; }
+        List<UIRectShadow> IUIRect.Shadows { get => shadows; set => shadows = value; }
         float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
         float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }
 

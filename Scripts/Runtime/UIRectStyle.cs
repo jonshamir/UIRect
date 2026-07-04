@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UIRect
@@ -23,19 +24,9 @@ namespace UIRect
         public float? BorderWidth;
         public BorderAlign? BorderAlign;
 
-        // Shadow
-        public bool? HasShadow;
-        public Color? ShadowColor;
-        public float? ShadowSize;
-        public float? ShadowSpread;
-        public Vector3? ShadowOffset;
-
-        // Inner shadow (inset)
-        public bool? HasInnerShadow;
-        public Color? InnerShadowColor;
-        public float? InnerShadowSize;
-        public float? InnerShadowSpread;
-        public Vector3? InnerShadowOffset;
+        // Shadows (outer and inner mixed; index 0 is topmost). null = unset, like the other
+        // members; a non-null empty list means "no shadows".
+        public List<UIRectShadow> Shadows;
 
         // Bevel
         public float? BevelWidth;
@@ -58,25 +49,7 @@ namespace UIRect
                 BorderWidth = (s1.BorderWidth == null || s2.BorderWidth == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BorderWidth, (float)s2.BorderWidth, t),
 
-                HasShadow = s2.HasShadow ?? s1.HasShadow,  // Use target value (no lerp for bool)
-                ShadowColor = (s1.ShadowColor == null || s2.ShadowColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.ShadowColor, (Color)s2.ShadowColor, t),
-                ShadowSize = (s1.ShadowSize == null || s2.ShadowSize == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.ShadowSize, (float)s2.ShadowSize, t),
-                ShadowSpread = (s1.ShadowSpread == null || s2.ShadowSpread == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.ShadowSpread, (float)s2.ShadowSpread, t),
-                ShadowOffset = (s1.ShadowOffset == null || s2.ShadowOffset == null) ? null :
-                    Vector3.LerpUnclamped((Vector3)s1.ShadowOffset, (Vector3)s2.ShadowOffset, t),
-
-                HasInnerShadow = s2.HasInnerShadow ?? s1.HasInnerShadow,  // Use target value (no lerp for bool)
-                InnerShadowColor = (s1.InnerShadowColor == null || s2.InnerShadowColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.InnerShadowColor, (Color)s2.InnerShadowColor, t),
-                InnerShadowSize = (s1.InnerShadowSize == null || s2.InnerShadowSize == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.InnerShadowSize, (float)s2.InnerShadowSize, t),
-                InnerShadowSpread = (s1.InnerShadowSpread == null || s2.InnerShadowSpread == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.InnerShadowSpread, (float)s2.InnerShadowSpread, t),
-                InnerShadowOffset = (s1.InnerShadowOffset == null || s2.InnerShadowOffset == null) ? null :
-                    Vector3.LerpUnclamped((Vector3)s1.InnerShadowOffset, (Vector3)s2.InnerShadowOffset, t),
+                Shadows = LerpShadows(s1.Shadows, s2.Shadows, t),
 
                 BevelWidth = (s1.BevelWidth == null || s2.BevelWidth == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BevelWidth, (float)s2.BevelWidth, t),
@@ -84,6 +57,34 @@ namespace UIRect
                     Mathf.LerpUnclamped((float)s1.BevelStrength, (float)s2.BevelStrength, t),
 
             };
+        }
+
+        // Index-matched shadow interpolation. Entries beyond the shorter list keep their own
+        // params and fade their alpha (in when only in s2, out when only in s1), so animating
+        // between styles with different shadow counts stays smooth.
+        private static List<UIRectShadow> LerpShadows(List<UIRectShadow> a, List<UIRectShadow> b, float t)
+        {
+            if (a == null || b == null)
+                return null;
+
+            int shared = Mathf.Min(a.Count, b.Count);
+            var result = new List<UIRectShadow>(Mathf.Max(a.Count, b.Count));
+
+            for (int i = 0; i < shared; i++)
+                result.Add(UIRectShadow.Lerp(a[i], b[i], t));
+
+            for (int i = shared; i < a.Count; i++) // extra source shadows fade out
+                result.Add(FadeAlpha(a[i], Mathf.LerpUnclamped(a[i].color.a, 0, t)));
+            for (int i = shared; i < b.Count; i++) // extra target shadows fade in
+                result.Add(FadeAlpha(b[i], Mathf.LerpUnclamped(0, b[i].color.a, t)));
+
+            return result;
+        }
+
+        private static UIRectShadow FadeAlpha(UIRectShadow s, float alpha)
+        {
+            s.color.a = alpha;
+            return s;
         }
     }
 }

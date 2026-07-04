@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace UIRect
 {
     /// <summary>
@@ -19,17 +21,8 @@ namespace UIRect
             BorderWidth = h.BorderWidth,
             BorderAlign = h.BorderAlignment,
 
-            HasShadow = h.HasShadow,
-            ShadowColor = h.ShadowColor,
-            ShadowSize = h.ShadowSize,
-            ShadowSpread = h.ShadowSpread,
-            ShadowOffset = h.ShadowOffset,
-
-            HasInnerShadow = h.HasInnerShadow,
-            InnerShadowColor = h.InnerShadowColor,
-            InnerShadowSize = h.InnerShadowSize,
-            InnerShadowSpread = h.InnerShadowSpread,
-            InnerShadowOffset = h.InnerShadowOffset,
+            // Copy: style snapshots (e.g. animation endpoints) must not alias the live list.
+            Shadows = new List<UIRectShadow>(h.Shadows),
 
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
@@ -49,17 +42,13 @@ namespace UIRect
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
             h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
 
-            h.HasShadow = style.HasShadow ?? h.HasShadow;
-            h.ShadowColor = style.ShadowColor ?? h.ShadowColor;
-            h.ShadowSize = style.ShadowSize ?? h.ShadowSize;
-            h.ShadowSpread = style.ShadowSpread ?? h.ShadowSpread;
-            h.ShadowOffset = style.ShadowOffset ?? h.ShadowOffset;
-
-            h.HasInnerShadow = style.HasInnerShadow ?? h.HasInnerShadow;
-            h.InnerShadowColor = style.InnerShadowColor ?? h.InnerShadowColor;
-            h.InnerShadowSize = style.InnerShadowSize ?? h.InnerShadowSize;
-            h.InnerShadowSpread = style.InnerShadowSpread ?? h.InnerShadowSpread;
-            h.InnerShadowOffset = style.InnerShadowOffset ?? h.InnerShadowOffset;
+            // Copy into the existing list (never swap the reference): the host's list is a
+            // serialized field, and callers may hold it.
+            if (style.Shadows != null)
+            {
+                h.Shadows.Clear();
+                h.Shadows.AddRange(style.Shadows);
+            }
 
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;
             h.BevelStrength = style.BevelStrength ?? h.BevelStrength;
@@ -76,16 +65,7 @@ namespace UIRect
             borderColor = h.BorderColor,
             borderWidth = h.BorderWidth,
             borderAlign = h.BorderAlignment,
-            hasShadow = h.HasShadow,
-            shadowColor = h.ShadowColor,
-            shadowSize = h.ShadowSize,
-            shadowSpread = h.ShadowSpread,
-            shadowOffset = h.ShadowOffset,
-            hasInnerShadow = h.HasInnerShadow,
-            innerShadowColor = h.InnerShadowColor,
-            innerShadowSize = h.InnerShadowSize,
-            innerShadowSpread = h.InnerShadowSpread,
-            innerShadowOffset = h.InnerShadowOffset,
+            shadows = h.Shadows, // live reference is fine: the renderer only reads, within this frame
             bevelWidth = h.BevelWidth,
             bevelStrength = h.BevelStrength,
         };
