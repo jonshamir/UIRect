@@ -10,6 +10,7 @@ jobs:
   test:
     name: Test on Unity ${{ matrix.unity-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
