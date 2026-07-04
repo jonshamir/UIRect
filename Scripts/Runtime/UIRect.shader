@@ -220,14 +220,40 @@ Shader "UI/UIRect"
                 if (boxRenderMode == BOX_RENDER_MODE_SHADOW)
                 {
                     float shadowSpread = IN.uv3.z;
-                    
+
                     // Use at least pixelWidth blur to prevent aliasing
                     float blur = max(effectWidth, pixelWidth / 3);
                     float antialiasingOffset = shadowSpread - pixelWidth;
                     float2 size = IN.size + antialiasingOffset.xx;
-                    float4 radius = IN.radii * 2 + antialiasingOffset.xxxx;
-                    
-                    color.a *= roundedBoxShadow(pos, size, blur, radius);
+                    // Spread can push radii negative or past the half-size;
+                    // either corrupts the slice geometry, so clamp per-fragment
+                    float4 radius = clamp(IN.radii * 2 + antialiasingOffset.xxxx, 0.0, min(size.x, size.y));
+
+                    float shadowDist = sdgRoundedBox(pos, size, radius).x;
+
+                    float mask;
+                    [branch]
+                    if (abs(shadowDist) > 3.0 * blur)
+                    {
+                        // Beyond +-3 sigma the gaussian has no support: skip the integral
+                        mask = shadowDist > 0.0 ? 0.0 : 1.0;
+                    }
+                    else
+                    {
+                        // Blurring along the SDF is near-exact (and loop-free) while
+                        // the blur is small relative to this quadrant's corner radius;
+                        // the sliced gaussian integral takes over for wide blurs
+                        mask = 0.5 - 0.5 * erf(shadowDist * (SQRT_HALF / blur));
+
+                        float2 sideRadii = (pos.x > 0.0) ? radius.yz : radius.xw;
+                        float quadrantRadius = (pos.y > 0.0) ? sideRadii.x : sideRadii.y;
+                        float t = smoothstep(0.0625, 0.125, blur / max(quadrantRadius, 0.0001));
+                        [branch]
+                        if (t > 0.0)
+                            mask = lerp(mask, roundedBoxShadow(pos, size, blur, radius), t);
+                    }
+
+                    color.a *= mask;
                     return color;
                 }
 

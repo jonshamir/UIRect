@@ -191,7 +191,7 @@ namespace UIRect
 
             float quadSizeOffset = borderAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
-                quadSizeOffset = effectWidth * 2.5f + p.shadowSpread; // ~3 sigma for the Gaussian blur
+                quadSizeOffset = effectWidth * 3f + p.shadowSpread; // 3 sigma for the Gaussian blur
 
             Vector3 offsetScale = new Vector3(
                 (quadSizeOffset + size.x) / size.x,
