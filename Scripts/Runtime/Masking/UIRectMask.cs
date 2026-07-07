@@ -71,17 +71,17 @@ namespace UIRect
         {
             base.PerformClipping();
             if (isActiveAndEnabled)
-                _materials?.PushRadii(ComputeCanvasSpaceRadii());
+                PushClipToMaterials();
         }
 
 #if UNITY_EDITOR
         protected override void OnValidate()
         {
             base.OnValidate();
-            // Editing the fallback radius in the inspector: SetVector is safe here (no rebuild), so just
-            // refresh radii. Structural/material changes are handled by OnEnable / OnTransformChildrenChanged.
+            // Editing the fallback radius in the inspector: SetVector/SetFloat are safe here (no rebuild),
+            // so just refresh. Structural/material changes are handled by OnEnable / OnTransformChildrenChanged.
             if (isActiveAndEnabled)
-                _materials?.PushRadii(ComputeCanvasSpaceRadii());
+                PushClipToMaterials();
         }
 #endif
 
@@ -113,7 +113,7 @@ namespace UIRect
             }
 
             _materials.Sync(_targets);
-            _materials.PushRadii(ComputeCanvasSpaceRadii());
+            PushClipToMaterials();
         }
 
         private static bool IsSupported(Graphic g)
@@ -144,17 +144,42 @@ namespace UIRect
         // fall back to the serialized field for a standalone mask.
         private Vector4 SourceRadii => SiblingRect != null ? SiblingRect.Radius : radius;
 
-        // The shader evaluates the clip in the canvas-local space shared by _ClipRect and the child
-        // vertex position, so the mask-local radii must be scaled into that space (Canvas Scaler,
-        // nested scales) and clamped to half the (canvas-space) short side. Rotation/skew between the
-        // mask and its canvas is unsupported, matching RectMask2D itself.
-        private Vector4 ComputeCanvasSpaceRadii()
+        // Local-space inset that keeps children inside the parent UIRect's border, so the border frames them
+        // ("on top"): an Inside border insets by its full width, Middle by half, Outside not at all. 0 when
+        // there is no border / no sibling UIRect.
+        private float BorderInsetLocal
+        {
+            get
+            {
+                if (SiblingRect == null) return 0f;
+                float factor = SiblingRect.BorderAlignment switch
+                {
+                    BorderAlign.Inside => 1f,
+                    BorderAlign.Middle => 0.5f,
+                    _ => 0f, // Outside
+                };
+                return Mathf.Max(SiblingRect.BorderWidth, 0f) * factor;
+            }
+        }
+
+        private void PushClipToMaterials()
+        {
+            if (_materials == null) return;
+            var (radii, inset) = ComputeClip();
+            _materials.PushClip(radii, inset);
+        }
+
+        // Converts the mask's radii and border inset into the canvas-local space shared by _ClipRect and the
+        // child vertex position (Canvas Scaler / nested scales). Returns the INNER radii (outer minus the
+        // border inset, concentric) clamped to the inner short side, plus the canvas-space inset. Rotation/
+        // skew between the mask and its canvas is unsupported, matching RectMask2D itself.
+        private (Vector4 radii, float inset) ComputeClip()
         {
             var rt = (RectTransform)transform;
             Rect rect = rt.rect;
             float localW = rect.width, localH = rect.height;
             if (localW <= 0f || localH <= 0f)
-                return Vector4.zero;
+                return (Vector4.zero, 0f);
 
             float canvasW = localW, canvasH = localH, scale = 1f;
             Canvas canvas = ResolveCanvas();
@@ -169,13 +194,23 @@ namespace UIRect
                 scale = localW > 0f ? canvasW / localW : 1f;
             }
 
-            Vector4 r = SourceRadii * scale;
-            float maxR = 0.5f * Mathf.Min(canvasW, canvasH);
-            return new Vector4(
-                Mathf.Clamp(r.x, 0f, maxR),
-                Mathf.Clamp(r.y, 0f, maxR),
-                Mathf.Clamp(r.z, 0f, maxR),
-                Mathf.Clamp(r.w, 0f, maxR));
+            float insetLocal = BorderInsetLocal;
+            float insetCanvas = insetLocal * scale;
+
+            // Inner radii = outer minus the border inset (concentric), scaled to canvas space.
+            Vector4 inner = SourceRadii - Vector4.one * insetLocal;
+            inner = new Vector4(Mathf.Max(inner.x, 0f), Mathf.Max(inner.y, 0f),
+                                Mathf.Max(inner.z, 0f), Mathf.Max(inner.w, 0f)) * scale;
+
+            // Clamp to half the inner (inset) short side.
+            float maxR = Mathf.Max(0f, 0.5f * Mathf.Min(canvasW, canvasH) - insetCanvas);
+            var radii = new Vector4(
+                Mathf.Clamp(inner.x, 0f, maxR),
+                Mathf.Clamp(inner.y, 0f, maxR),
+                Mathf.Clamp(inner.z, 0f, maxR),
+                Mathf.Clamp(inner.w, 0f, maxR));
+
+            return (radii, insetCanvas);
         }
 
         private Canvas ResolveCanvas()

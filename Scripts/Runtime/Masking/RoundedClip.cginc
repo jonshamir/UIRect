@@ -13,14 +13,19 @@
 #include "../SDF.cginc"
 
 // (topLeft, topRight, bottomRight, bottomLeft), in the same canvas-space units as _ClipRect.
+// These are the INNER radii when the mask insets by the parent's border (see _ClipRectInset).
 float4 _ClipRectRadii;
+
+// Canvas-space inset applied to all sides, so children clip to inside the parent UIRect's border
+// (0 when the parent has no border). Concentric — center is unchanged.
+float _ClipRectInset;
 
 // Coverage of `clipPos` against the mask's rounded rect: 1 fully inside, 0 fully outside,
 // with a 1px anti-aliased edge (matching UIRect's own SDF antialiasing). Multiply alpha by this.
 float roundedClipCoverage(float2 clipPos)
 {
     float2 center   = (_ClipRect.xy + _ClipRect.zw) * 0.5;
-    float2 halfSize = (_ClipRect.zw - _ClipRect.xy) * 0.5;
+    float2 halfSize = max((_ClipRect.zw - _ClipRect.xy) * 0.5 - _ClipRectInset, 0.0);
     float  dist     = sdgRoundedBox(clipPos - center, halfSize, _ClipRectRadii).x;
     return saturate(0.5 - dist / max(fwidth(dist), 1e-5));
 }

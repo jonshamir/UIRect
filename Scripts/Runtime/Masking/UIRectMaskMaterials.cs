@@ -21,6 +21,7 @@ namespace UIRect
     internal sealed class UIRectMaskMaterials
     {
         private static readonly int ClipRadiiId = Shader.PropertyToID("_ClipRectRadii");
+        private static readonly int ClipInsetId = Shader.PropertyToID("_ClipRectInset");
 
         // Shared UIRect clip materials, by bevel keyword — at most two live per mask.
         private Material _uiRectNoBevel;
@@ -48,17 +49,29 @@ namespace UIRect
         }
 
         private Vector4 _radii = Vector4.zero;
+        private float _inset;
 
-        /// <summary>Pushes the mask's canvas-space corner radii onto every owned material (cheap, no dirtying).</summary>
-        public void PushRadii(Vector4 canvasSpaceRadii)
+        /// <summary>
+        /// Pushes the mask's canvas-space corner radii and border inset onto every owned material (cheap,
+        /// no dirtying). Radii are the inner radii; inset shrinks the clip half-size (parent border extent).
+        /// </summary>
+        public void PushClip(Vector4 canvasSpaceRadii, float canvasSpaceInset)
         {
             _radii = canvasSpaceRadii;
-            if (_uiRectNoBevel != null) _uiRectNoBevel.SetVector(ClipRadiiId, _radii);
-            if (_uiRectBevel != null) _uiRectBevel.SetVector(ClipRadiiId, _radii);
+            _inset = canvasSpaceInset;
+            Apply(_uiRectNoBevel);
+            Apply(_uiRectBevel);
 #if UIRECT_TMP
             foreach (var clone in _tmpClones.Values)
-                if (clone != null) clone.SetVector(ClipRadiiId, _radii);
+                Apply(clone);
 #endif
+        }
+
+        private void Apply(Material m)
+        {
+            if (m == null) return;
+            m.SetVector(ClipRadiiId, _radii);
+            m.SetFloat(ClipInsetId, _inset);
         }
 
         /// <summary>
@@ -119,7 +132,7 @@ namespace UIRect
                 if (_uiRectBevel == null)
                 {
                     _uiRectBevel = UIRectRenderer.CreateMaskMaterial(true);
-                    _uiRectBevel.SetVector(ClipRadiiId, _radii);
+                    Apply(_uiRectBevel);
                 }
                 return _uiRectBevel;
             }
@@ -127,7 +140,7 @@ namespace UIRect
             if (_uiRectNoBevel == null)
             {
                 _uiRectNoBevel = UIRectRenderer.CreateMaskMaterial(false);
-                _uiRectNoBevel.SetVector(ClipRadiiId, _radii);
+                Apply(_uiRectNoBevel);
             }
             return _uiRectNoBevel;
         }
@@ -160,7 +173,7 @@ namespace UIRect
             if (!_tmpClones.TryGetValue(src, out var clone) || clone == null)
             {
                 clone = new Material(src) { hideFlags = HideFlags.HideAndDontSave, shader = TmpMaskShader };
-                clone.SetVector(ClipRadiiId, _radii);
+                Apply(clone);
                 _tmpClones[src] = clone;
             }
 
