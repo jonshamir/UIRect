@@ -61,6 +61,9 @@ Shader "UI/UIRect"
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
             #pragma multi_compile_local __ _USE_BEVELS
+            // Rounded child-masking (UIRectMask). shader_feature (not multi_compile) so the variant
+            // is stripped from builds that never enable it — zero cost when masking is unused.
+            #pragma shader_feature_local __ _ROUNDED_CLIP
 
             // Precomputed constants
             #define INV_GAMMA 0.45454545      // 1/2.2
@@ -103,6 +106,9 @@ Shader "UI/UIRect"
             half4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+
+            // After _ClipRect so roundedClipCoverage() sees it (adds _ClipRectRadii + the clip fn).
+            #include "Masking/RoundedClip.cginc"
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
@@ -147,12 +153,19 @@ Shader "UI/UIRect"
                 if (boxRenderMode == BOX_RENDER_MODE_FILL)
                     color *= pow(tex2Dgrad(_MainTex, IN.uv, uvDdx, uvDdy) + _TextureSampleAdd, INV_GAMMA);
 
+                // Clip coverage (rect + optional rounded). Applied to the FINAL composited alpha at each
+                // return below, so borders/shadows/bevels are clipped too — not just the fill.
+                float clipCoverage = 1.0;
                 #ifdef UNITY_UI_CLIP_RECT
-                color.a *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
+                clipCoverage *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
+                #endif
+                // Rounded refinement of the rect clip above, driven by a UIRectMask parent.
+                #ifdef _ROUNDED_CLIP
+                clipCoverage *= roundedClipCoverage(IN.clipPosition.xy);
                 #endif
 
                 #ifdef UNITY_UI_ALPHACLIP
-                clip (color.a - 0.001);
+                clip (color.a * clipCoverage - 0.001);
                 #endif
 
                 float effectWidth = IN.uv2.z;
@@ -273,11 +286,13 @@ Shader "UI/UIRect"
                     float mask = blurredRoundedBoxCoverage(pos, size, blur, radius);
 
                     color.a *= mask;
+                    color.a *= clipCoverage;
                     return color;
                 }
 
                 // Remove pixels outside the outer border
                 color.a *= smoothstep(outerDist, outerDist - pixelWidth, dist);
+                color.a *= clipCoverage;
 
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 color.rgb = pow(color.rgb, 2.2);

@@ -1,0 +1,149 @@
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace UIRect.Tests
+{
+    /// <summary>
+    /// Edit-mode tests for <see cref="UIRectMask"/>. They drive the mask via <see cref="UIRectMask.RefreshMask"/>
+    /// so assignment is deterministic regardless of edit-mode lifecycle timing, and assert on the public
+    /// surface (each child's <c>material</c> and its <c>_ROUNDED_CLIP</c> keyword). No Canvas is used, so the
+    /// radii computation takes its no-canvas branch (scale 1) — keeping the clamp assertion exact/headless.
+    /// </summary>
+    public class UIRectMaskTests
+    {
+        private const string RoundedKeyword = "_ROUNDED_CLIP";
+        private const string BevelKeyword = "_USE_BEVELS";
+        private static readonly int ClipRadiiId = Shader.PropertyToID("_ClipRectRadii");
+
+        private GameObject _maskGO;
+        private UIRectMask _mask;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _maskGO = NewUIRect("Mask", out _);
+            ((RectTransform)_maskGO.transform).sizeDelta = new Vector2(100, 100);
+            _mask = _maskGO.AddComponent<UIRectMask>();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_maskGO != null)
+                Object.DestroyImmediate(_maskGO);
+        }
+
+        // --- helpers -------------------------------------------------------------------------------
+
+        private static GameObject NewUIRect(string name, out UIRectImage image)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer));
+            image = go.AddComponent<UIRectImage>();
+            return go;
+        }
+
+        private UIRectImage AddUIRectChild(string name = "Child")
+        {
+            var go = NewUIRect(name, out var image);
+            go.transform.SetParent(_maskGO.transform, false);
+            return image;
+        }
+
+        // --- assignment ----------------------------------------------------------------------------
+
+        [Test]
+        public void Mask_AssignsRoundedClipMaterial_ToUIRectChild()
+        {
+            var child = AddUIRectChild();
+            _mask.RefreshMask();
+
+            Assert.IsTrue(child.material.IsKeywordEnabled(RoundedKeyword),
+                "A UIRect child under a UIRectMask should render with a _ROUNDED_CLIP material.");
+        }
+
+        [Test]
+        public void Mask_DoesNotClip_ItsOwnGraphic()
+        {
+            var ownGraphic = _maskGO.GetComponent<UIRectImage>();
+            AddUIRectChild();
+            _mask.RefreshMask();
+
+            Assert.IsFalse(ownGraphic.material.IsKeywordEnabled(RoundedKeyword),
+                "The mask's own boundary graphic must not be clipped by itself.");
+        }
+
+        [Test]
+        public void Mask_LeavesPlainImageChild_Untouched()
+        {
+            var go = new GameObject("PlainImage", typeof(RectTransform), typeof(CanvasRenderer));
+            var plain = go.AddComponent<Image>();
+            go.transform.SetParent(_maskGO.transform, false);
+
+            _mask.RefreshMask();
+
+            // Not a supported type → material must remain the untouched default (m_Material still null).
+            Assert.AreSame(plain.defaultMaterial, plain.material,
+                "A non-UIRect/non-TMP child should keep its default material (base rect clip only).");
+        }
+
+        [Test]
+        public void Mask_UsesBevelVariant_ForBeveledChild()
+        {
+            var child = AddUIRectChild();
+            child.bevelWidth = 5f;
+            child.bevelStrength = 1f;
+            _mask.RefreshMask();
+
+            Assert.IsTrue(child.material.IsKeywordEnabled(RoundedKeyword), "Should still be a clip material.");
+            Assert.IsTrue(child.material.IsKeywordEnabled(BevelKeyword),
+                "A beveled UIRect child must get the bevel + rounded-clip material variant.");
+        }
+
+        // --- radii ---------------------------------------------------------------------------------
+
+        [Test]
+        public void Mask_ClampsRadii_ToHalfShortSide()
+        {
+            var child = AddUIRectChild();
+            _mask.GetComponent<UIRectImage>().radius = new Vector4(100, 100, 100, 100); // > half of 100
+            _mask.RefreshMask();
+
+            Vector4 pushed = child.material.GetVector(ClipRadiiId);
+            const float maxR = 50f; // half of the 100x100 mask, no-canvas scale = 1
+            Assert.LessOrEqual(pushed.x, maxR + 1e-3f);
+            Assert.LessOrEqual(pushed.y, maxR + 1e-3f);
+            Assert.LessOrEqual(pushed.z, maxR + 1e-3f);
+            Assert.LessOrEqual(pushed.w, maxR + 1e-3f);
+            Assert.Greater(pushed.x, 0f, "Radii should be pushed to the child clip material.");
+        }
+
+        // --- teardown (opt-in / zero residue) ------------------------------------------------------
+
+        [Test]
+        public void DisablingMask_RestoresChildMaterial()
+        {
+            var child = AddUIRectChild();
+            _mask.RefreshMask();
+            Assume.That(child.material.IsKeywordEnabled(RoundedKeyword));
+
+            _mask.enabled = false; // OnDisable -> Dispose restores originals
+
+            Assert.AreSame(child.defaultMaterial, child.material,
+                "Disabling the mask must revert the child to its default (unclipped) material.");
+        }
+
+        [Test]
+        public void DestroyingMask_RestoresChildMaterial()
+        {
+            var child = AddUIRectChild();
+            _mask.RefreshMask();
+            Assume.That(child.material.IsKeywordEnabled(RoundedKeyword));
+
+            Object.DestroyImmediate(_mask);
+
+            Assert.AreSame(child.defaultMaterial, child.material,
+                "Removing the mask component must leave no residual clip material on children.");
+        }
+    }
+}

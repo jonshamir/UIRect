@@ -37,6 +37,7 @@ namespace UIRect
 
         private const string SHADER_NAME = "UI/UIRect";
         private const string KEYWORD_BEVELS = "_USE_BEVELS";
+        private const string KEYWORD_ROUNDED_CLIP = "_ROUNDED_CLIP";
 
         private static Shader _shader;
         private static bool _warnedMissingShader;
@@ -66,6 +67,23 @@ namespace UIRect
             material = new Material(_shader);
             material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
             _materials[index] = material;
+            return material;
+        }
+
+        /// <summary>
+        /// Creates a NEW, caller-owned UIRect material with the rounded child-clip (<c>_ROUNDED_CLIP</c>)
+        /// keyword enabled. Used only by <see cref="UIRectMask"/>: each mask owns its clip materials (they
+        /// carry that mask's <c>_ClipRectRadii</c>) and must Destroy them on teardown. Deliberately not
+        /// cached — radii are per-mask, so these must not be shared via <see cref="GetMaterial"/>. The
+        /// default (non-masking) path is untouched, so unmasked UIRects never enable the keyword.
+        /// </summary>
+        public static Material CreateMaskMaterial(bool useBevel)
+        {
+            _shader ??= Shader.Find(SHADER_NAME);
+
+            var material = new Material(_shader) { hideFlags = HideFlags.HideAndDontSave };
+            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
+            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_ROUNDED_CLIP), true);
             return material;
         }
 
