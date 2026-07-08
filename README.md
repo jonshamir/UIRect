@@ -65,9 +65,11 @@ rect.borderColor = Color.white;
 Use `UIRectStyle` to define and apply styles:
 
 ```csharp
+using System.Collections.Generic; // for the Shadows list
+
 UIRectStyle cardStyle = new UIRectStyle
 {
-    BackgroundColor = Color.white,
+    FillColor = Color.white,
     Radius = new Vector4(15, 15, 15, 15),
     BorderColor = new Color(0.8f, 0.8f, 0.8f),
     BorderWidth = 2,
@@ -111,14 +113,20 @@ UIRect includes a built-in animation system that smoothly interpolates between s
 ```csharp
 UIRectStyle hoverStyle = new UIRectStyle
 {
-    BackgroundColor = Color.cyan,
+    FillColor = Color.cyan,
     BorderWidth = 8,
-    ShadowSize = 20
+    Shadows = new List<UIRectShadow>
+    {
+        new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 20, offset = new Vector3(0, -5, 0) }
+    }
 };
 
 // Animate over 0.5 seconds with default easing
 uiRect.AnimateTo(hoverStyle, 0.5f);
 ```
+
+Shadows animate index-by-index: give the start and end styles a `Shadows` list of the same
+length and matching entries interpolate. Extra entries fade in or out as the count changes.
 
 ### Animation with Callback
 
@@ -143,18 +151,24 @@ public class UIRectButton : MonoBehaviour
     {
         normalStyle = new UIRectStyle
         {
-            BackgroundColor = Color.white,
+            FillColor = Color.white,
             BorderWidth = 2,
             BorderColor = Color.gray,
             Radius = new Vector4(10, 10, 10, 10),
-            ShadowSize = 5
+            Shadows = new List<UIRectShadow>
+            {
+                new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 5, offset = new Vector3(0, -2, 0) }
+            }
         };
 
         hoverStyle = new UIRectStyle
         {
-            BackgroundColor = new Color(0.9f, 0.9f, 1f),
+            FillColor = new Color(0.9f, 0.9f, 1f),
             BorderColor = Color.blue,
-            ShadowSize = 15
+            Shadows = new List<UIRectShadow>
+            {
+                new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 15, offset = new Vector3(0, -2, 0) }
+            }
         };
 
         uiRect.Style = normalStyle;

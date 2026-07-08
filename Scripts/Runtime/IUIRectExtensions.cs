@@ -13,7 +13,7 @@ namespace UIRect
         /// <summary>Builds a fully-populated <see cref="UIRectStyle"/> from the host's current values.</summary>
         public static UIRectStyle GetStyle(this IUIRect h) => new UIRectStyle
         {
-            BackgroundColor = h.FillColor,
+            FillColor = h.FillColor,
             Radius = h.Radius,
             Translate = h.Translate,
 
@@ -22,7 +22,8 @@ namespace UIRect
             BorderAlign = h.BorderAlignment,
 
             // Copy: style snapshots (e.g. animation endpoints) must not alias the live list.
-            Shadows = new List<UIRectShadow>(h.Shadows),
+            // null round-trips as null (the renderer treats null as "no shadows").
+            Shadows = h.Shadows == null ? null : new List<UIRectShadow>(h.Shadows),
 
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
@@ -34,7 +35,7 @@ namespace UIRect
         /// </summary>
         public static void ApplyStyle(this IUIRect h, UIRectStyle style)
         {
-            h.FillColor = style.BackgroundColor ?? h.FillColor;
+            h.FillColor = style.FillColor ?? h.FillColor;
             h.Radius = style.Radius ?? h.Radius;
             h.Translate = style.Translate ?? h.Translate;
 
@@ -42,12 +43,18 @@ namespace UIRect
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
             h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
 
-            // Copy into the existing list (never swap the reference): the host's list is a
-            // serialized field, and callers may hold it.
-            if (style.Shadows != null)
+            // Copy into the existing list where possible (the host's list is a serialized field
+            // callers may hold). Skip when the two alias the same instance — Clear() would empty
+            // the source too. Allocate a fresh list only when the host has none yet.
+            if (style.Shadows != null && !ReferenceEquals(style.Shadows, h.Shadows))
             {
-                h.Shadows.Clear();
-                h.Shadows.AddRange(style.Shadows);
+                if (h.Shadows == null)
+                    h.Shadows = new List<UIRectShadow>(style.Shadows);
+                else
+                {
+                    h.Shadows.Clear();
+                    h.Shadows.AddRange(style.Shadows);
+                }
             }
 
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -66,11 +67,11 @@ namespace UIRect.Tests.Editor
         }
 
         [Test]
-        public void UIRect_SetStyle_AppliesBackgroundColor()
+        public void UIRect_SetStyle_AppliesFillColor()
         {
             var style = new UIRectStyle
             {
-                BackgroundColor = Color.cyan
+                FillColor = Color.cyan
             };
 
             _uiRect.Style = style;
@@ -142,6 +143,36 @@ namespace UIRect.Tests.Editor
             _uiRect.shadows.Add(new UIRectShadow { color = Color.black, size = 10 });
 
             Assert.AreEqual(1, _uiRect.shadows.Count);
+            Assert.AreEqual(10f, _uiRect.shadows[0].size);
+        }
+
+        [Test]
+        public void UIRect_NullShadows_StyleGetAndSet_DoNotThrow()
+        {
+            // A consumer may clear shadows by nulling the list; the renderer already tolerates this,
+            // so the style path must too (GetStyle/ApplyStyle used to dereference the null list).
+            _uiRect.shadows = null;
+
+            UIRectStyle captured = default;
+            Assert.DoesNotThrow(() => captured = _uiRect.Style, "Reading Style with a null shadow list must not throw.");
+            Assert.IsNull(captured.Shadows, "A null host list round-trips as a null style member.");
+
+            Assert.DoesNotThrow(() => _uiRect.Style = new UIRectStyle
+            {
+                Shadows = new List<UIRectShadow> { UIRectShadow.Default }
+            }, "Applying shadows onto a null host list must not throw.");
+            Assert.AreEqual(1, _uiRect.shadows.Count, "Applying shadows must allocate the host list.");
+        }
+
+        [Test]
+        public void UIRect_ApplyStyle_AliasingLiveList_KeepsShadows()
+        {
+            _uiRect.shadows.Add(new UIRectShadow { color = Color.black, size = 10 });
+
+            // A hand-built style whose Shadows aliases the live list must not self-wipe on apply.
+            _uiRect.Style = new UIRectStyle { Shadows = _uiRect.shadows };
+
+            Assert.AreEqual(1, _uiRect.shadows.Count, "Applying a style that aliases the live list must not clear it.");
             Assert.AreEqual(10f, _uiRect.shadows[0].size);
         }
     }

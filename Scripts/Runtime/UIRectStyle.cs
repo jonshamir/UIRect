@@ -15,7 +15,7 @@ namespace UIRect
 
     public struct UIRectStyle
     {
-        public Color? BackgroundColor;
+        public Color? FillColor;
         public Vector4? Radius;
         public Vector3? Translate;
 
@@ -36,8 +36,8 @@ namespace UIRect
         {
             return new UIRectStyle()
             {
-                BackgroundColor = (s1.BackgroundColor == null || s2.BackgroundColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.BackgroundColor, (Color)s2.BackgroundColor, t),
+                FillColor = (s1.FillColor == null || s2.FillColor == null) ? null :
+                    Color.LerpUnclamped((Color)s1.FillColor, (Color)s2.FillColor, t),
                 Radius = (s1.Radius == null || s2.Radius == null) ? null :
                     Vector4.LerpUnclamped((Vector4)s1.Radius, (Vector4)s2.Radius, t),
                 Translate = (s1.Translate == null || s2.Translate == null) ? null :
@@ -73,8 +73,11 @@ namespace UIRect
             for (int i = 0; i < shared; i++)
                 result.Add(UIRectShadow.Lerp(a[i], b[i], t));
 
-            for (int i = shared; i < a.Count; i++) // extra source shadows fade out
-                result.Add(FadeAlpha(a[i], Mathf.LerpUnclamped(a[i].color.a, 0, t)));
+            // Extra source shadows fade out, then drop once fully faded (t >= 1), so the finished
+            // list matches the target's count instead of retaining zero-alpha phantom entries.
+            if (t < 1f)
+                for (int i = shared; i < a.Count; i++)
+                    result.Add(FadeAlpha(a[i], Mathf.LerpUnclamped(a[i].color.a, 0, t)));
             for (int i = shared; i < b.Count; i++) // extra target shadows fade in
                 result.Add(FadeAlpha(b[i], Mathf.LerpUnclamped(0, b[i].color.a, t)));
 

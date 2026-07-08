@@ -16,7 +16,7 @@ namespace UIRect
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public class UIRectRawImage : RawImage, IUIRect, ISerializationCallbackReceiver
+    public class UIRectRawImage : RawImage, IUIRect
     {
         #region Public Properties
 
@@ -40,24 +40,6 @@ namespace UIRect
         // Bevel
         public float bevelWidth = 0;
         public float bevelStrength = 1;
-
-        #endregion
-
-        #region Legacy single-shadow fields (pre-list format, kept for migration only)
-
-        // Field names unchanged so old serialized data still binds; UIRectShadowMigration converts
-        // them into `shadows` entries on deserialize, with hasShadow as the idempotence guard.
-        [SerializeField, HideInInspector] private bool hasShadow = false;
-        [SerializeField, HideInInspector] private Color shadowColor = new(0, 0, 0, 0.5f);
-        [SerializeField, HideInInspector] private float shadowSize = 10;
-        [SerializeField, HideInInspector] private float shadowSpread = 0;
-        [SerializeField, HideInInspector] private Vector3 shadowOffset = new Vector2(0, -5);
-
-        public void OnBeforeSerialize() { }
-
-        public void OnAfterDeserialize()
-            => UIRectShadowMigration.Migrate(ref hasShadow, shadowColor, shadowSize, shadowSpread,
-                shadowOffset, shadows);
 
         #endregion
 

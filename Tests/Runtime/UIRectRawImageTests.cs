@@ -65,11 +65,11 @@ namespace UIRect.Tests
         }
 
         [Test]
-        public void UIRectRawImage_SetStyle_AppliesBackgroundColor()
+        public void UIRectRawImage_SetStyle_AppliesFillColor()
         {
             var style = new UIRectStyle
             {
-                BackgroundColor = Color.cyan
+                FillColor = Color.cyan
             };
 
             _uiRectRawImage.Style = style;

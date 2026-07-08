@@ -11,7 +11,7 @@ namespace UIRect.Tests
         {
             var style1 = new UIRectStyle
             {
-                BackgroundColor = Color.black,
+                FillColor = Color.black,
                 Radius = Vector4.zero,
                 BorderWidth = 0f,
                 Shadows = new List<UIRectShadow> { new UIRectShadow { size = 0f } }
@@ -19,7 +19,7 @@ namespace UIRect.Tests
 
             var style2 = new UIRectStyle
             {
-                BackgroundColor = Color.white,
+                FillColor = Color.white,
                 Radius = new Vector4(20, 20, 20, 20),
                 BorderWidth = 10f,
                 Shadows = new List<UIRectShadow> { new UIRectShadow { size = 20f } }
@@ -27,7 +27,7 @@ namespace UIRect.Tests
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
 
-            Assert.AreEqual(new Color(0.5f, 0.5f, 0.5f, 1f), result.BackgroundColor);
+            Assert.AreEqual(new Color(0.5f, 0.5f, 0.5f, 1f), result.FillColor);
             Assert.AreEqual(new Vector4(10, 10, 10, 10), result.Radius);
             Assert.AreEqual(5f, result.BorderWidth);
             Assert.AreEqual(10f, result.Shadows[0].size);
@@ -36,34 +36,34 @@ namespace UIRect.Tests
         [Test]
         public void Lerp_AtZero_ReturnsFirstStyle()
         {
-            var style1 = new UIRectStyle { BackgroundColor = Color.red };
-            var style2 = new UIRectStyle { BackgroundColor = Color.blue };
+            var style1 = new UIRectStyle { FillColor = Color.red };
+            var style2 = new UIRectStyle { FillColor = Color.blue };
 
             var result = UIRectStyle.Lerp(style1, style2, 0f);
 
-            Assert.AreEqual(Color.red, result.BackgroundColor);
+            Assert.AreEqual(Color.red, result.FillColor);
         }
 
         [Test]
         public void Lerp_AtOne_ReturnsSecondStyle()
         {
-            var style1 = new UIRectStyle { BackgroundColor = Color.red };
-            var style2 = new UIRectStyle { BackgroundColor = Color.blue };
+            var style1 = new UIRectStyle { FillColor = Color.red };
+            var style2 = new UIRectStyle { FillColor = Color.blue };
 
             var result = UIRectStyle.Lerp(style1, style2, 1f);
 
-            Assert.AreEqual(Color.blue, result.BackgroundColor);
+            Assert.AreEqual(Color.blue, result.FillColor);
         }
 
         [Test]
         public void Lerp_WithNullProperty_ReturnsNull()
         {
-            var style1 = new UIRectStyle { BackgroundColor = Color.red };
-            var style2 = new UIRectStyle { BackgroundColor = null };
+            var style1 = new UIRectStyle { FillColor = Color.red };
+            var style2 = new UIRectStyle { FillColor = null };
 
             var result = UIRectStyle.Lerp(style1, style2, 0.5f);
 
-            Assert.IsNull(result.BackgroundColor);
+            Assert.IsNull(result.FillColor);
         }
 
         [Test]
@@ -139,6 +139,27 @@ namespace UIRect.Tests
         }
 
         [Test]
+        public void Lerp_ShadowCountMismatch_AtOne_MatchesTargetCount()
+        {
+            var shared = new UIRectShadow { color = Color.black, size = 10f };
+            var extra = new UIRectShadow { color = new Color(1, 0, 0, 0.8f), size = 6f };
+
+            var twoShadows = new UIRectStyle { Shadows = new List<UIRectShadow> { shared, extra } };
+            var oneShadow = new UIRectStyle { Shadows = new List<UIRectShadow> { shared } };
+
+            // Shrinking: the faded-out source-only shadow must be dropped, not left as a phantom.
+            var shrunk = UIRectStyle.Lerp(twoShadows, oneShadow, 1f);
+            Assert.AreEqual(1, shrunk.Shadows.Count,
+                "At t=1 a fully-faded source-only shadow must be dropped so the count matches the target.");
+
+            // Growing: the faded-in target-only shadow is a real target shadow and must remain.
+            var grown = UIRectStyle.Lerp(oneShadow, twoShadows, 1f);
+            Assert.AreEqual(2, grown.Shadows.Count, "At t=1 the count must match the target's shadow count.");
+            Assert.AreEqual(0.8f, grown.Shadows[1].color.a, 1e-4f,
+                "A grown-in shadow reaches its full target alpha at t=1.");
+        }
+
+        [Test]
         public void Lerp_Shadows_NullSide_ReturnsNull()
         {
             var style1 = new UIRectStyle { Shadows = new List<UIRectShadow> { new UIRectShadow { size = 5 } } };
@@ -154,7 +175,7 @@ namespace UIRect.Tests
         {
             var style = new UIRectStyle();
 
-            Assert.IsNull(style.BackgroundColor);
+            Assert.IsNull(style.FillColor);
             Assert.IsNull(style.Radius);
             Assert.IsNull(style.Translate);
             Assert.IsNull(style.BorderColor);
