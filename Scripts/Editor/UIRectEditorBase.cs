@@ -14,9 +14,13 @@ namespace UIRect
     /// </summary>
     public abstract class UIRectEditorBase : Editor
     {
-        private static bool showBorder;
-        private static bool showShadows;
-        private static bool showBevel;
+        private GUIStyle _boldFoldout;
+        private GUIStyle BoldFoldoutStyle =>
+            _boldFoldout ??= new GUIStyle(EditorStyles.foldout) { fontStyle = FontStyle.Bold };
+
+        private GUIStyle _summaryStyle;
+        private GUIStyle SummaryStyle =>
+            _summaryStyle ??= new GUIStyle(EditorStyles.miniLabel) { alignment = TextAnchor.MiddleRight };
 
         private SerializedProperty _color;
         private SerializedProperty _independentCorners;
@@ -53,7 +57,11 @@ namespace UIRect
             _shadowList = new ReorderableList(serializedObject, _shadows,
                 draggable: true, displayHeader: false, displayAddButton: true, displayRemoveButton: true)
             {
-                elementHeight = 5 * (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing) + 8,
+                // Field value is only used for the empty-list placeholder; keep it to one line.
+                elementHeight = EditorGUIUtility.singleLineHeight + 4,
+                // Each row is collapsible: just the foldout header when collapsed,
+                // header + 5 fields when expanded.
+                elementHeightCallback = ShadowElementHeight,
                 drawElementCallback = DrawShadowElement,
                 onAddCallback = OnAddShadow,
             };
@@ -94,34 +102,26 @@ namespace UIRect
 
             EditorGUILayout.PropertyField(_translate);
 
+            // Border
             GUILayout.Space(10);
+            EditorGUILayout.LabelField("Border", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_borderColor);
+            _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Thickness", _borderWidth.floatValue), 0);
+            EditorGUILayout.PropertyField(_borderAlign);
 
-            BeginFoldOutGroup("Border", ref showBorder);
-            if (showBorder)
-            {
-                EditorGUILayout.PropertyField(_borderColor);
-                _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Thickness", _borderWidth.floatValue), 0);
-                EditorGUILayout.PropertyField(_borderAlign);
-            }
-            EndFoldOutGroup();
+            // Bevel
+            GUILayout.Space(10);
+            EditorGUILayout.LabelField("Bevel", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_bevelWidth);
+            EditorGUILayout.PropertyField(_bevelStrength);
 
-            BeginFoldOutGroup($"Shadows ({_shadows.arraySize})", ref showShadows);
-            if (showShadows)
-            {
-                if (_shadows.hasMultipleDifferentValues)
-                    EditorGUILayout.HelpBox("Shadow lists differ across the selected objects.", MessageType.Info);
-                else
-                    _shadowList.DoLayoutList();
-            }
-            EndFoldOutGroup();
-
-            BeginFoldOutGroup("Bevel", ref showBevel);
-            if (showBevel)
-            {
-                EditorGUILayout.PropertyField(_bevelWidth);
-                EditorGUILayout.PropertyField(_bevelStrength);
-            }
-            EndFoldOutGroup();
+            // Shadows (last)
+            GUILayout.Space(10);
+            EditorGUILayout.LabelField($"Shadows ({_shadows.arraySize})", EditorStyles.boldLabel);
+            if (_shadows.hasMultipleDifferentValues)
+                EditorGUILayout.HelpBox("Shadow lists differ across the selected objects.", MessageType.Info);
+            else
+                _shadowList.DoLayoutList();
 
             GUILayout.Space(5);
 
@@ -137,6 +137,10 @@ namespace UIRect
         private void DrawShadowElement(Rect rect, int index, bool isActive, bool isFocused)
         {
             SerializedProperty element = _shadows.GetArrayElementAtIndex(index);
+            SerializedProperty isInner = element.FindPropertyRelative("isInner");
+            SerializedProperty color = element.FindPropertyRelative("color");
+            SerializedProperty size = element.FindPropertyRelative("size");
+            SerializedProperty spread = element.FindPropertyRelative("spread");
 
             // Keep Vector3 fields on a single line even in a narrow inspector.
             bool wideMode = EditorGUIUtility.wideMode;
@@ -146,14 +150,54 @@ namespace UIRect
             rect.height = EditorGUIUtility.singleLineHeight;
             float step = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-            EditorGUI.PropertyField(rect, element.FindPropertyRelative("isInner"), new GUIContent("Inner",
-                "Inset shadow drawn inside the shape instead of behind it")); rect.y += step;
-            EditorGUI.PropertyField(rect, element.FindPropertyRelative("color")); rect.y += step;
-            EditorGUI.PropertyField(rect, element.FindPropertyRelative("size")); rect.y += step;
-            EditorGUI.PropertyField(rect, element.FindPropertyRelative("spread")); rect.y += step;
-            EditorGUI.PropertyField(rect, element.FindPropertyRelative("offset"));
+            // Shift content clear of the reorderable-list drag handle on the left.
+            rect.x += 15;
+            rect.width -= 15;
+
+            string title = isInner.boolValue ? "Inner Shadow" : "Shadow";
+            element.isExpanded = EditorGUI.Foldout(rect, element.isExpanded, title, true, BoldFoldoutStyle);
+
+            if (!element.isExpanded)
+                DrawShadowSummary(rect, color.colorValue, size.floatValue, spread.floatValue);
+
+            rect.y += step;
+
+            if (element.isExpanded)
+            {
+                EditorGUI.indentLevel++;
+                EditorGUI.PropertyField(rect, isInner, new GUIContent("Inner",
+                    "Inset shadow drawn inside the shape instead of behind it")); rect.y += step;
+                EditorGUI.PropertyField(rect, color); rect.y += step;
+                EditorGUI.PropertyField(rect, size); rect.y += step;
+                EditorGUI.PropertyField(rect, spread); rect.y += step;
+                EditorGUI.PropertyField(rect, element.FindPropertyRelative("offset"));
+                EditorGUI.indentLevel--;
+            }
 
             EditorGUIUtility.wideMode = wideMode;
+        }
+
+        // Right-aligned color swatch + blur summary shown on a collapsed row's header line.
+        private void DrawShadowSummary(Rect headerRect, Color color, float size, float spread)
+        {
+            const float swatchWidth = 26f;
+            const float pad = 4f;
+
+            Rect swatch = new Rect(headerRect.xMax - swatchWidth, headerRect.y + 1,
+                swatchWidth, headerRect.height - 2);
+            EditorGUI.DrawRect(swatch, new Color(0f, 0f, 0f, 0.5f)); // border
+            EditorGUI.DrawRect(new Rect(swatch.x + 1, swatch.y + 1, swatch.width - 2, swatch.height - 2), color);
+
+            Rect textRect = new Rect(headerRect.x, headerRect.y, swatch.x - pad - headerRect.x, headerRect.height);
+            EditorGUI.LabelField(textRect, $"Size {size:0}   Spread {spread:0}", SummaryStyle);
+        }
+
+        // Collapsed rows show only the foldout header; expanded rows add the 5 shadow fields.
+        private float ShadowElementHeight(int index)
+        {
+            float step = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+            int lines = _shadows.GetArrayElementAtIndex(index).isExpanded ? 6 : 1;
+            return lines * step + 8;
         }
 
         // Unity zero-fills the first element added to an empty list, which would be an invisible
@@ -166,10 +210,12 @@ namespace UIRect
             list.serializedProperty.arraySize++;
             list.index = index;
 
+            SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
+            element.isExpanded = true;
+
             if (!wasEmpty)
                 return;
 
-            SerializedProperty element = list.serializedProperty.GetArrayElementAtIndex(index);
             var defaults = UIRectShadow.Default;
             element.FindPropertyRelative("isInner").boolValue = defaults.isInner;
             element.FindPropertyRelative("color").colorValue = defaults.color;
@@ -205,33 +251,6 @@ namespace UIRect
 
             Undo.RegisterCreatedObjectUndo(go, "Create " + name);
             Selection.activeObject = go;
-        }
-
-        #endregion
-
-        #region Foldout group helpers
-
-        private void BeginFoldOutGroup(string name, ref bool foldOut)
-        {
-            BeginFoldOutGroupBase(name, ref foldOut);
-            GUILayout.EndHorizontal();
-        }
-
-        private void BeginFoldOutGroupBase(string name, ref bool foldOut)
-        {
-            var foldOutBodyStyle = EditorStyles.helpBox;
-            foldOutBodyStyle.padding = new RectOffset(1, 1, 1, 0);
-            GUILayout.BeginVertical(foldOutBodyStyle);
-            GUILayout.BeginHorizontal(EditorStyles.toolbar);
-            GUILayout.Space(15);
-            foldOut = EditorGUILayout.Foldout(foldOut, name, true);
-            GUILayout.FlexibleSpace();
-        }
-
-        private void EndFoldOutGroup()
-        {
-            GUI.enabled = true;
-            GUILayout.EndVertical();
         }
 
         #endregion
