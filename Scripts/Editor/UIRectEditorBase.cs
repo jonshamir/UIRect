@@ -195,9 +195,11 @@ namespace UIRect
         // Collapsed rows show only the foldout header; expanded rows add the 5 shadow fields.
         private float ShadowElementHeight(int index)
         {
+            if (!_shadows.GetArrayElementAtIndex(index).isExpanded)
+                return EditorGUIUtility.singleLineHeight + 6;
+
             float step = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-            int lines = _shadows.GetArrayElementAtIndex(index).isExpanded ? 6 : 1;
-            return lines * step + 8;
+            return 6 * step + 8;
         }
 
         // Unity zero-fills the first element added to an empty list, which would be an invisible
