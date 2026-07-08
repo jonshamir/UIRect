@@ -1,9 +1,33 @@
 using NUnit.Framework;
+using UnityEngine;
 
-namespace UIRect.Tests
+namespace UIRect.Blur.Tests
 {
     public class UIRectBlurTests
     {
+        [Test]
+        public void GlassShader_Resolves()
+        {
+            Assert.IsNotNull(Shader.Find("UI/UIRectGlass"), "UI/UIRectGlass shader not found in project");
+        }
+
+        [Test]
+        public void Backdrop_DefaultMaterial_UsesGlassShader()
+        {
+            var go = new GameObject("BackdropTest", typeof(RectTransform));
+            try
+            {
+                var backdrop = go.AddComponent<UIRectBackdrop>();
+                var mat = backdrop.defaultMaterial;
+                Assert.IsNotNull(mat);
+                Assert.AreEqual("UI/UIRectGlass", mat.shader.name);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
         [Test]
         public void BlurSettings_Default_MatchesConstants()
         {

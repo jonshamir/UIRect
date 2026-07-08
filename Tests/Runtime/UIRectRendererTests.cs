@@ -69,27 +69,5 @@ namespace UIRect.Tests
                 "Shadow quad must carry shadowSpread in uv3.z; the shader reads uv3.z as shadowSpread. " +
                 "Packing bevelStrength here makes bevelStrength leak into the shadow shape.");
         }
-
-        [Test]
-        public void GetMaterial_KeywordVariants_AreDistinctAndSetKeywords()
-        {
-            var plain = UIRectRenderer.GetMaterial(UIRectFeature.None);
-            var blur = UIRectRenderer.GetMaterial(UIRectFeature.Blur);
-            var bevel = UIRectRenderer.GetMaterial(UIRectFeature.Bevel);
-            var both = UIRectRenderer.GetMaterial(UIRectFeature.Bevel | UIRectFeature.Blur);
-
-            Assert.AreNotSame(plain, blur);
-            Assert.AreNotSame(plain, bevel);
-            Assert.AreNotSame(blur, both);
-
-            Assert.IsFalse(plain.IsKeywordEnabled("_USE_BLUR"));
-            Assert.IsTrue(blur.IsKeywordEnabled("_USE_BLUR"));
-            Assert.IsTrue(both.IsKeywordEnabled("_USE_BLUR"));
-            Assert.IsTrue(both.IsKeywordEnabled("_USE_BEVELS"));
-
-            // Cache returns the same instance for the same feature set, regardless of flag order.
-            Assert.AreSame(blur, UIRectRenderer.GetMaterial(UIRectFeature.Blur));
-            Assert.AreSame(both, UIRectRenderer.GetMaterial(UIRectFeature.Blur | UIRectFeature.Bevel));
-        }
     }
 }

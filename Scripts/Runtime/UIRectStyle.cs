@@ -34,9 +34,6 @@ namespace UIRect
         public float? BevelWidth;
         public float? BevelStrength;
 
-        // Backdrop blur
-        public bool? HasBackdropBlur;
-
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
         {
             return new UIRectStyle()
@@ -69,7 +66,6 @@ namespace UIRect
                 BevelStrength = (s1.BevelStrength == null || s2.BevelStrength == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BevelStrength, (float)s2.BevelStrength, t),
 
-                HasBackdropBlur = s2.HasBackdropBlur ?? s1.HasBackdropBlur,  // Use target value (no lerp for bool)
             };
         }
     }

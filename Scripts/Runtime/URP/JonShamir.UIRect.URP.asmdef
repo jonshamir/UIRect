@@ -2,7 +2,7 @@
     "name": "JonShamir.UIRect.URP",
     "rootNamespace": "",
     "references": [
-        "JonShamir.UIRect",
+        "JonShamir.UIRect.Blur",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime"
     ],

@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Backdrop blur ("frosted glass") — an opt-in per-rect effect that blurs the camera content
-  behind the rect, masked to the rounded-rect shape and tinted by the fill color.
-  - `_USE_BLUR` shader variant samples a global `_UIRectBackdropTex` in screen space.
+- Backdrop blur ("frosted glass") — an optional, self-contained module (`JonShamir.UIRect.Blur`),
+  deliberately kept out of the core UIRect so the base component carries no blur code.
+  - `UIRectBackdrop` component (GameObject ▸ UI ▸ UIRect Backdrop): a standalone glass layer — a
+    rounded rect filled with the blurred backdrop and an optional tint. Layer a `UIRectImage` on top
+    for a border/shadow. Draws via the dedicated `UI/UIRectGlass` shader (screen-space backdrop
+    sample + shared rounded-rect coverage), reusing the core mesh path.
+  - The blur is published as a global `_UIRectBackdropTex` produced once per camera by a provider.
   - `UIRectBackdropBlurBuiltin` camera component provides the blur in the Built-in Render Pipeline,
     previewing live in both the Game view and the Scene view in edit mode (no Play mode needed).
   - `UIRectBackdropBlurFeature` Renderer Feature provides the same for URP (optional

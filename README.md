@@ -23,7 +23,7 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **Borders** - Customizable width, color, and alignment (inside, middle, outside)
 - **Shadows** - Soft shadows with size, spread, offset, and color control
 - **Bevels** - Parallax-mapped bevels with specular highlights
-- **Backdrop Blur** - Opt-in frosted-glass blur of the camera content behind each rect
+- **Backdrop Blur** - Optional frosted-glass layer (`UIRectBackdrop`) that blurs the camera content behind it
 - **Smooth Animations** - Built-in animation system with custom easing curves
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
@@ -167,19 +167,25 @@ public class UIRectButton : MonoBehaviour
 
 ## Backdrop Blur
 
-Enable the frosted-glass effect per rect with `hasBackdropBlur` (bool).
+Backdrop blur is a **separate, optional module** (`JonShamir.UIRect.Blur`) — it's kept out of the core
+UIRect so the base component stays lean. It's exposed as its own frosted-glass layer rather than a flag
+on `UIRectImage`.
 
-Backdrop blur samples a blurred snapshot of whatever the camera renders behind the rect and
-composites it under the fill (the fill color tints it; the fill alpha is the tint strength). It needs
-a **blur provider** in the scene, which produces the shared blur once per camera for every blurred rect:
+Add a **`UIRectBackdrop`** component (GameObject ▸ UI ▸ UIRect Backdrop) to get a frosted-glass panel:
+a rounded rectangle filled with a blurred snapshot of whatever the camera renders behind it, optionally
+tinted (set the **Tint Color** and **Tint Strength**). It's a standalone layer — for a border, shadow or
+bevel, layer a normal `UIRectImage` on top.
+
+It needs a **blur provider** in the scene, which produces the shared blur once per camera for every
+`UIRectBackdrop`:
 
 - **Built-in RP:** add a `UIRectBackdropBlurBuiltin` component to your UI camera.
 - **URP:** add the **UIRect Backdrop Blur** Renderer Feature to your URP Renderer asset. Runs natively
   under Unity 6 Render Graph, with a compatibility-mode fallback for older URP.
 
-Blur amount (Downsample, Iterations, Blur Radius) is set on the provider and shared by all rects.
+Blur amount (Downsample, Iterations, Blur Radius) is set on the provider and shared by all panels.
 Downsample and Iterations drive the blur width; Blur Radius is a fine softness nudge. If no provider
-is present, blurred rects fall back to a flat gray and the inspector shows a warning. Works on
+is present, `UIRectBackdrop` falls back to a flat gray and the inspector shows a warning. Works on
 Screen Space - Camera and World Space canvases.
 
 **XR support:**

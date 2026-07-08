@@ -36,7 +36,5 @@ namespace UIRect
 
         float BevelWidth { get; set; }
         float BevelStrength { get; set; }
-
-        bool HasBackdropBlur { get; set; }
     }
 }
