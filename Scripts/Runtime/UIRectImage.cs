@@ -36,6 +36,9 @@ namespace UIRect
         public float bevelWidth = 0;
         public float bevelStrength = 1;
 
+        // Backdrop blur (requires a blur provider in the scene - see UIRectBackdropBlurBuiltin / URP feature)
+        public bool hasBackdropBlur = false;
+
         #endregion
 
         #region Style
@@ -61,15 +64,20 @@ namespace UIRect
         Vector3 IUIRect.ShadowOffset { get => shadowOffset; set => shadowOffset = value; }
         float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
         float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }
+        bool IUIRect.HasBackdropBlur { get => hasBackdropBlur; set => hasBackdropBlur = value; }
 
         #endregion
 
         #region Rendering
 
         // The shared rounded-rect material (see UIRectRenderer)
-        public override Material defaultMaterial => UIRectRenderer.GetMaterial(UseBevel);
+        public override Material defaultMaterial => UIRectRenderer.GetMaterial(Features);
 
         private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
+        private bool UseBlur => hasBackdropBlur;
+        private UIRectFeature Features =>
+            (UseBevel ? UIRectFeature.Bevel : UIRectFeature.None) |
+            (UseBlur ? UIRectFeature.Blur : UIRectFeature.None);
 
         // Edits the UI vertices with the data read on the GPU (see UIRectRenderer)
         protected override void OnPopulateMesh(VertexHelper vh)

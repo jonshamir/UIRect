@@ -61,6 +61,7 @@ Shader "UI/UIRect"
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
             #pragma multi_compile_local __ _USE_BEVELS
+            #pragma multi_compile_local __ _USE_BLUR
 
             // Precomputed constants
             #define INV_GAMMA 0.45454545      // 1/2.2
@@ -94,6 +95,9 @@ Shader "UI/UIRect"
                 float4 uv3 : TEXCOORD5;
                 float4 worldPosition : TEXCOORD4;
                 float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
+                #ifdef _USE_BLUR
+                float4 screenPos : TEXCOORD7;  // For sampling the backdrop blur texture
+                #endif
 
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -103,6 +107,12 @@ Shader "UI/UIRect"
             half4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+
+            // Backdrop blur: a global blurred snapshot of the camera color, set each frame by a
+            // provider (UIRectBackdropBlurBuiltin on Built-in RP, or the URP render feature).
+            // Declared as a screenspace texture so it samples the correct eye slice under
+            // single-pass instanced / multiview XR (becomes a Texture2DArray there, sampler2D otherwise).
+            UNITY_DECLARE_SCREENSPACE_TEXTURE(_UIRectBackdropTex);
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
@@ -116,7 +126,10 @@ Shader "UI/UIRect"
                 OUT.worldPosition = mul(unity_ObjectToWorld, v.vertex);  // For bevel lighting
                 OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
-                
+                #ifdef _USE_BLUR
+                OUT.screenPos = ComputeScreenPos(OUT.vertex);
+                #endif
+
                 OUT.uv = TRANSFORM_TEX(v.uv0, _MainTex);
                 OUT.size = v.uv1.xy;
 
@@ -135,6 +148,11 @@ Shader "UI/UIRect"
  
             half4 frag(v2f IN) : SV_Target
             {
+                #ifdef _USE_BLUR
+                // Restore unity_StereoEyeIndex in the fragment so the backdrop screenspace sample
+                // reads the correct eye slice under single-pass instanced / multiview XR.
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(IN);
+                #endif
                 half4 texColor = pow(tex2D(_MainTex, IN.uv) + _TextureSampleAdd, INV_GAMMA);
                 half4 color = texColor * IN.color * IN.fillColor;
                 
@@ -256,6 +274,23 @@ Shader "UI/UIRect"
                     color.a *= mask;
                     return color;
                 }
+
+                #ifdef _USE_BLUR
+                // Composite the blurred backdrop as the base of the fill (frosted glass). The fill
+                // color acts as the glass tint and its alpha the tint strength over the blur. Blur
+                // strength is global (set on the provider that fills _UIRectBackdropTex).
+                float2 backdropUV = IN.screenPos.xy / IN.screenPos.w;
+                half3 backdrop = UNITY_SAMPLE_SCREENSPACE_TEXTURE(_UIRectBackdropTex, backdropUV).rgb;
+                // Composite in the same space as the fill. In linear projects the trailing pow(2.2)
+                // below converts the whole fill to linear, so pre-applying its inverse here keeps the
+                // (already-linear) backdrop from being double-corrected. Gamma projects have no trailing
+                // pow, so the backdrop is left untouched - guarding on the color space keeps both correct.
+                #if !defined(UNITY_COLORSPACE_GAMMA)
+                backdrop = pow(backdrop, INV_GAMMA);
+                #endif
+                color.rgb = lerp(backdrop, color.rgb, color.a);
+                color.a = 1; // coverage below re-applies the rounded-rect mask
+                #endif
 
                 // Remove pixels outside the outer border
                 color.a *= smoothstep(outerDist, outerDist - pixelWidth, dist);

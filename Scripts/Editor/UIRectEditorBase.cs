@@ -16,7 +16,9 @@ namespace UIRect
         private static bool showBorder;
         private static bool showShadow;
         private static bool showBevel;
+        private static bool showBackdropBlur;
         private bool _hasShadow;
+        private bool _hasBackdropBlur;
 
         private SerializedProperty _color;
         private SerializedProperty _independentCorners;
@@ -36,6 +38,8 @@ namespace UIRect
 
         private SerializedProperty _bevelWidth;
         private SerializedProperty _bevelStrength;
+
+        private SerializedProperty _backdropBlurEnabled;
 
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
@@ -60,6 +64,8 @@ namespace UIRect
 
             _bevelWidth = serializedObject.FindProperty("bevelWidth");
             _bevelStrength = serializedObject.FindProperty("bevelStrength");
+
+            _backdropBlurEnabled = serializedObject.FindProperty("hasBackdropBlur");
         }
 
         public override void OnInspectorGUI()
@@ -123,6 +129,32 @@ namespace UIRect
                 EditorGUILayout.PropertyField(_bevelStrength);
             }
             EndFoldOutGroup();
+
+            _hasBackdropBlur = _backdropBlurEnabled.boolValue;
+            BeginFoldOutGroup("Backdrop Blur", ref showBackdropBlur, ref _hasBackdropBlur);
+            if (showBackdropBlur)
+            {
+                if (_hasBackdropBlur && UIRectBlurCore.ActiveProviderCount == 0)
+                {
+                    EditorGUILayout.HelpBox("No active backdrop-blur provider found. Add a " +
+                                            "UIRectBackdropBlurBuiltin component to your camera (Built-in RP), " +
+                                            "or the UIRect backdrop-blur Renderer Feature to your URP Renderer. " +
+                                            "Without one, blurred elements fall back to a flat gray.",
+                                            MessageType.Warning, true);
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("Backdrop blur needs a blur provider in the scene: add a " +
+                                            "UIRectBackdropBlurBuiltin component to the camera (Built-in RP), " +
+                                            "or the UIRect backdrop-blur Renderer Feature (URP). Blur strength is " +
+                                            "set on the provider. Works on Screen Space - Camera and World Space canvases. " +
+                                            "For XR, use URP (single-pass instanced and multi-pass supported); " +
+                                            "Built-in RP supports XR only in multi-pass.",
+                                            MessageType.Info, true);
+                }
+            }
+            EndFoldOutGroup();
+            _backdropBlurEnabled.boolValue = _hasBackdropBlur;
 
             GUILayout.Space(5);
 

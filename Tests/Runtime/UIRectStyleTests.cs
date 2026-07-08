@@ -77,6 +77,17 @@ namespace UIRect.Tests
         }
 
         [Test]
+        public void Lerp_BackdropBlurBool_UsesTargetValue()
+        {
+            var style1 = new UIRectStyle { HasBackdropBlur = false };
+            var style2 = new UIRectStyle { HasBackdropBlur = true };
+
+            var result = UIRectStyle.Lerp(style1, style2, 0.1f);
+
+            Assert.IsTrue(result.HasBackdropBlur);
+        }
+
+        [Test]
         public void Lerp_WithOvershoot_AllowsValuesAboveOne()
         {
             var style1 = new UIRectStyle { BorderWidth = 0f };
@@ -127,6 +138,7 @@ namespace UIRect.Tests
             Assert.IsNull(style.ShadowOffset);
             Assert.IsNull(style.BevelWidth);
             Assert.IsNull(style.BevelStrength);
+            Assert.IsNull(style.HasBackdropBlur);
         }
     }
 }

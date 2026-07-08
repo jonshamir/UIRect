@@ -23,6 +23,7 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **Borders** - Customizable width, color, and alignment (inside, middle, outside)
 - **Shadows** - Soft shadows with size, spread, offset, and color control
 - **Bevels** - Parallax-mapped bevels with specular highlights
+- **Backdrop Blur** - Opt-in frosted-glass blur of the camera content behind each rect
 - **Smooth Animations** - Built-in animation system with custom easing curves
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
@@ -163,6 +164,32 @@ public class UIRectButton : MonoBehaviour
     }
 }
 ```
+
+## Backdrop Blur
+
+Enable the frosted-glass effect per rect with `hasBackdropBlur` (bool).
+
+Backdrop blur samples a blurred snapshot of whatever the camera renders behind the rect and
+composites it under the fill (the fill color tints it; the fill alpha is the tint strength). It needs
+a **blur provider** in the scene, which produces the shared blur once per camera for every blurred rect:
+
+- **Built-in RP:** add a `UIRectBackdropBlurBuiltin` component to your UI camera.
+- **URP:** add the **UIRect Backdrop Blur** Renderer Feature to your URP Renderer asset. Runs natively
+  under Unity 6 Render Graph, with a compatibility-mode fallback for older URP.
+
+Blur amount (Downsample, Iterations, Blur Radius) is set on the provider and shared by all rects.
+Downsample and Iterations drive the blur width; Blur Radius is a fine softness nudge. If no provider
+is present, blurred rects fall back to a flat gray and the inspector shows a warning. Works on
+Screen Space - Camera and World Space canvases.
+
+**XR support:**
+
+| Pipeline | Single-Pass Instanced / Multiview | Multi-Pass |
+|----------|-----------------------------------|------------|
+| URP      | ✅ Supported                       | ✅ Supported |
+| Built-in | ⚠️ Not supported (falls back to flat gray + logs a warning) | ✅ Supported |
+
+For single-pass XR use URP. On Built-in RP, use Multi-Pass stereo rendering if you need the effect in XR.
 
 ## Performance Notes
 

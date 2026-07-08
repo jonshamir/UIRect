@@ -7,6 +7,19 @@ using UnityEngine.UI;
 namespace UIRect
 {
     /// <summary>
+    /// Local shader-keyword features toggled per element, used as the material-cache key in
+    /// <see cref="UIRectRenderer.GetMaterial"/>. Introduce a new shader variant by adding a flag here
+    /// plus a matching <c>SetKeyword</c> line - no growing bool parameter list or fragile string keys.
+    /// </summary>
+    [System.Flags]
+    public enum UIRectFeature
+    {
+        None = 0,
+        Bevel = 1 << 0,
+        Blur = 1 << 1,
+    }
+
+    /// <summary>
     /// Snapshot of the style values <see cref="UIRectRenderer"/> needs to build a rounded-rect
     /// mesh. Each component (UIRectImage / UIRectRawImage) fills this in from its own serialized fields, so
     /// the renderer stays agnostic of the underlying graphic type.
@@ -28,6 +41,7 @@ namespace UIRect
         public Vector3 shadowOffset;
         public float bevelWidth;
         public float bevelStrength;
+        public bool hasBackdropBlur;
     }
 
     /// <summary>
@@ -46,23 +60,26 @@ namespace UIRect
 
         private const string SHADER_NAME = "UI/UIRect";
         private const string KEYWORD_BEVELS = "_USE_BEVELS";
+        private const string KEYWORD_BLUR = "_USE_BLUR";
 
         private static Shader _shader;
 
-        // Materials keyed by their enabled local-keyword set, so future style keywords
-        // (e.g. a "_USE_GRADIENT" variant) slot in without adding more hard-coded fields.
-        private static readonly Dictionary<string, Material> _materials = new();
+        // Materials keyed by their enabled feature set, so future style keywords (e.g. a "_USE_GRADIENT"
+        // variant) slot in via a new UIRectFeature flag without adding more hard-coded fields. Keyed on
+        // the int bitmask to avoid enum-key boxing on the per-rebuild defaultMaterial lookup.
+        private static readonly Dictionary<int, Material> _materials = new();
 
-        public static Material GetMaterial(bool useBevel)
+        public static Material GetMaterial(UIRectFeature features)
         {
             _shader ??= Shader.Find(SHADER_NAME);
 
-            string key = useBevel ? KEYWORD_BEVELS : string.Empty;
+            int key = (int)features;
             if (_materials.TryGetValue(key, out var material) && material != null)
                 return material;
 
             material = new Material(_shader);
-            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
+            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), (features & UIRectFeature.Bevel) != 0);
+            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BLUR), (features & UIRectFeature.Blur) != 0);
             _materials[key] = material;
             return material;
         }
@@ -219,7 +236,7 @@ namespace UIRect
 
                 verts[i].uv1 = uv1; // (width, height, topRadii, bottomRadii)
                 verts[i].uv2 = uv2; // (fillColor, borderColor, effectWidth, borderOffset)
-                verts[i].uv3 = uv3; // (renderMode, bevelWidth, bevelStrength, 0)
+                verts[i].uv3 = uv3; // (renderMode, bevelWidth, bevelStrength|shadowSpread, unused)
             }
         }
 

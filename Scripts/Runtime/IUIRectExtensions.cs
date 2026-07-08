@@ -27,6 +27,8 @@ namespace UIRect
 
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
+
+            HasBackdropBlur = h.HasBackdropBlur,
         };
 
         /// <summary>
@@ -51,6 +53,8 @@ namespace UIRect
 
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;
             h.BevelStrength = style.BevelStrength ?? h.BevelStrength;
+
+            h.HasBackdropBlur = style.HasBackdropBlur ?? h.HasBackdropBlur;
         }
 
         /// <summary>Snapshots the host's style into the DTO <see cref="UIRectRenderer"/> consumes.</summary>
@@ -71,6 +75,7 @@ namespace UIRect
             shadowOffset = h.ShadowOffset,
             bevelWidth = h.BevelWidth,
             bevelStrength = h.BevelStrength,
+            hasBackdropBlur = h.HasBackdropBlur,
         };
 
         /// <summary>
