@@ -33,6 +33,12 @@ namespace UIRect
         public float? BevelStrength;
 
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
+            => Lerp(s1, s2, t, null);
+
+        // Overload that lerps shadows into a caller-supplied buffer instead of allocating a fresh
+        // list. The animator passes a reusable buffer so per-frame animation allocates nothing;
+        // callers that pass null (including the 3-arg overload) get the allocating behaviour.
+        public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadow> shadowBuffer)
         {
             return new UIRectStyle()
             {
@@ -49,7 +55,7 @@ namespace UIRect
                 BorderWidth = (s1.BorderWidth == null || s2.BorderWidth == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BorderWidth, (float)s2.BorderWidth, t),
 
-                Shadows = LerpShadows(s1.Shadows, s2.Shadows, t),
+                Shadows = LerpShadowsInto(s1.Shadows, s2.Shadows, t, shadowBuffer),
 
                 BevelWidth = (s1.BevelWidth == null || s2.BevelWidth == null) ? null :
                     Mathf.LerpUnclamped((float)s1.BevelWidth, (float)s2.BevelWidth, t),
@@ -61,14 +67,19 @@ namespace UIRect
 
         // Index-matched shadow interpolation. Entries beyond the shorter list keep their own
         // params and fade their alpha (in when only in s2, out when only in s1), so animating
-        // between styles with different shadow counts stays smooth.
-        private static List<UIRectShadow> LerpShadows(List<UIRectShadow> a, List<UIRectShadow> b, float t)
+        // between styles with different shadow counts stays smooth. Reuses <paramref name="buffer"/>
+        // when non-null (cleared and refilled) so the animation path allocates nothing per frame;
+        // when null, allocates a fresh list. A null source/target propagates to a null result and
+        // leaves the buffer untouched.
+        private static List<UIRectShadow> LerpShadowsInto(List<UIRectShadow> a, List<UIRectShadow> b, float t,
+            List<UIRectShadow> buffer)
         {
             if (a == null || b == null)
                 return null;
 
             int shared = Mathf.Min(a.Count, b.Count);
-            var result = new List<UIRectShadow>(Mathf.Max(a.Count, b.Count));
+            var result = buffer ?? new List<UIRectShadow>(Mathf.Max(a.Count, b.Count));
+            result.Clear();
 
             for (int i = 0; i < shared; i++)
                 result.Add(UIRectShadow.Lerp(a[i], b[i], t));

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UIRect
@@ -20,6 +21,11 @@ namespace UIRect
         private AnimationCurve _curve;
         private Action _onComplete;
         private Action _pendingComplete;
+
+        // Reused across ticks so the per-frame lerp allocates no shadow list. Safe because the
+        // returned style is consumed synchronously (copied into the host list by ApplyStyle)
+        // before the next Tick overwrites the buffer.
+        private readonly List<UIRectShadow> _shadowBuffer = new();
 
         public bool IsAnimating => _isAnimating;
 
@@ -54,11 +60,12 @@ namespace UIRect
 
             float elapsed = Time.unscaledTime - _startTime;
             float t = _duration <= 0f ? 1f : Mathf.Clamp01(elapsed / _duration);
-            current = UIRectStyle.Lerp(_startStyle, _targetStyle, _curve.Evaluate(t));
+            // Snap to the exact target on the final frame (the curve's endpoint may not be exactly 1).
+            float eased = t >= 1f ? 1f : _curve.Evaluate(t);
+            current = UIRectStyle.Lerp(_startStyle, _targetStyle, eased, _shadowBuffer);
 
             if (t >= 1f)
             {
-                current = UIRectStyle.Lerp(_startStyle, _targetStyle, 1f);
                 _isAnimating = false;
                 _pendingComplete = _onComplete;
                 _onComplete = null;
