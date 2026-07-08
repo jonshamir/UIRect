@@ -63,6 +63,7 @@ namespace UIRect
                 // header + 5 fields when expanded.
                 elementHeightCallback = ShadowElementHeight,
                 drawElementCallback = DrawShadowElement,
+                drawNoneElementCallback = rect => EditorGUI.LabelField(rect, "Shadows"),
                 onAddCallback = OnAddShadow,
             };
 
@@ -104,20 +105,17 @@ namespace UIRect
 
             // Border
             GUILayout.Space(10);
-            EditorGUILayout.LabelField("Border", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(_borderColor);
             _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Thickness", _borderWidth.floatValue), 0);
             EditorGUILayout.PropertyField(_borderAlign);
 
             // Bevel
             GUILayout.Space(10);
-            EditorGUILayout.LabelField("Bevel", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(_bevelWidth);
             EditorGUILayout.PropertyField(_bevelStrength);
 
             // Shadows (last)
             GUILayout.Space(10);
-            EditorGUILayout.LabelField($"Shadows ({_shadows.arraySize})", EditorStyles.boldLabel);
             if (_shadows.hasMultipleDifferentValues)
                 EditorGUILayout.HelpBox("Shadow lists differ across the selected objects.", MessageType.Info);
             else
@@ -154,7 +152,7 @@ namespace UIRect
             rect.x += 15;
             rect.width -= 15;
 
-            string title = isInner.boolValue ? "Inner Shadow" : "Shadow";
+            string title = (isInner.boolValue ? "Inner Shadow " : "Shadow ") + (index + 1);
             element.isExpanded = EditorGUI.Foldout(rect, element.isExpanded, title, true, BoldFoldoutStyle);
 
             if (!element.isExpanded)
