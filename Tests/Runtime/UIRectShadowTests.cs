@@ -30,6 +30,7 @@ namespace UIRect.Tests
         public void IsVisible_WithSizeOrOffset_IsTrue()
         {
             Assert.IsTrue(new UIRectShadow { size = 1 }.IsVisible);
+            Assert.IsTrue(new UIRectShadow { spread = 1 }.IsVisible);
             Assert.IsTrue(new UIRectShadow { offset = new Vector3(0, -2, 0) }.IsVisible);
         }
 

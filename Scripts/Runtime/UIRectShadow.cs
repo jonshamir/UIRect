@@ -31,8 +31,8 @@ namespace UIRect
             offset = new Vector3(0, -5, 0),
         };
 
-        /// <summary>A shadow with no blur and no offset draws nothing and is skipped by the renderer.</summary>
-        public bool IsVisible => size > 0 || offset != Vector3.zero;
+        /// <summary>A shadow with no blur, no spread, and no offset draws nothing and is skipped by the renderer.</summary>
+        public bool IsVisible => size > 0 || spread > 0 || offset != Vector3.zero;
 
         public static UIRectShadow Lerp(in UIRectShadow a, in UIRectShadow b, float t) => new UIRectShadow
         {
