@@ -12,7 +12,7 @@
     "ugui",
     "rounded",
     "shadow",
-    "border",
+    "stroke",
     "css",
     "rounded-rect"
   ],

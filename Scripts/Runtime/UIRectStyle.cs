@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace UIRect
 {
-    public enum BorderAlign
+    public enum StrokeAlign
     {
         Middle, Outside, Inside
     }
@@ -19,10 +19,10 @@ namespace UIRect
         public Vector4? Radius;
         public Vector3? Translate;
 
-        // Border
-        public Color? BorderColor;
-        public float? BorderWidth;
-        public BorderAlign? BorderAlign;
+        // Stroke
+        public Color? StrokeColor;
+        public float? StrokeWidth;
+        public StrokeAlign? StrokeAlign;
 
         // Shadows (outer and inner mixed; index 0 is topmost). null = unset, like the other
         // members; a non-null empty list means "no shadows".
@@ -44,10 +44,10 @@ namespace UIRect
                     Vector3.LerpUnclamped((Vector3)s1.Translate, (Vector3)s2.Translate, t),
 
 
-                BorderColor = (s1.BorderColor == null || s2.BorderColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.BorderColor, (Color)s2.BorderColor, t),
-                BorderWidth = (s1.BorderWidth == null || s2.BorderWidth == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BorderWidth, (float)s2.BorderWidth, t),
+                StrokeColor = (s1.StrokeColor == null || s2.StrokeColor == null) ? null :
+                    Color.LerpUnclamped((Color)s1.StrokeColor, (Color)s2.StrokeColor, t),
+                StrokeWidth = (s1.StrokeWidth == null || s2.StrokeWidth == null) ? null :
+                    Mathf.LerpUnclamped((float)s1.StrokeWidth, (float)s2.StrokeWidth, t),
 
                 Shadows = LerpShadows(s1.Shadows, s2.Shadows, t),
 

@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UIRect;
 
 /// <summary>
-/// Adds a hover border to a single SphereMenu item. On pointer enter it animates a border in,
-/// on pointer exit it animates the border back out. Only the border fields of the style are set,
+/// Adds a hover stroke to a single SphereMenu item. On pointer enter it animates a stroke in,
+/// on pointer exit it animates the stroke back out. Only the stroke fields of the style are set,
 /// so the item's fill color is left untouched. On press it pushes itself in (animating
 /// <c>translate.z</c>) on mouse down and springs back out on mouse up, and on a genuine click it
 /// tells the owning <see cref="SphereMenu"/> to play its scale wave.
@@ -12,8 +13,8 @@ using UIRect;
 [RequireComponent(typeof(UIRectImage))]
 public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler, IPointerClickHandler
 {
-    public Color hoverBorderColor = Color.white;
-    public float hoverBorderWidth = 4f;
+    [FormerlySerializedAs("hoverBorderColor")] public Color hoverStrokeColor = Color.white;
+    [FormerlySerializedAs("hoverBorderWidth")] public float hoverStrokeWidth = 4f;
     public float animDuration = 0.1f;
 
     [Header("Press push")]
@@ -35,7 +36,7 @@ public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     }
 
     // Push the rect in (-Z) on mouse down; held while the button stays pressed. Only Translate is
-    // set, so the hover border and fill are left untouched.
+    // set, so the hover stroke and fill are left untouched.
     public void OnPointerDown(PointerEventData eventData)
     {
         _uiRect.AnimateTo(new UIRectStyle { Translate = new Vector3(0f, 0f, -pushDepth) }, pushDuration);
@@ -59,8 +60,8 @@ public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         _uiRect.AnimateTo(new UIRectStyle
         {
-            BorderColor = hoverBorderColor,
-            BorderWidth = hoverBorderWidth,
+            StrokeColor = hoverStrokeColor,
+            StrokeWidth = hoverStrokeWidth,
         }, animDuration);
     }
 
@@ -68,8 +69,8 @@ public class SphereMenuItem : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     {
         _uiRect.AnimateTo(new UIRectStyle
         {
-            BorderColor = hoverBorderColor,
-            BorderWidth = 0f,
+            StrokeColor = hoverStrokeColor,
+            StrokeWidth = 0f,
         }, animDuration);
     }
 }

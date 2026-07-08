@@ -69,7 +69,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
     // Each frame, make only the camera-facing (near, visible) items raycast targets. This way
     // the near item wins the hover even when a far item overlaps it on screen, and a hovered
-    // item that rotates to the back drops out (firing OnPointerExit, reverting its border).
+    // item that rotates to the back drops out (firing OnPointerExit, reverting its stroke).
     void UpdateItemHoverFacing()
     {
         if (eventCamera == null)
@@ -118,7 +118,7 @@ public class SphereMenu : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
 
             UIRectImage uiRect = item.GetComponent<UIRectImage>();
             uiRect.fillColor = PickItemColor();
-            uiRect.borderAlign = BorderAlign.Middle;
+            uiRect.strokeAlign = StrokeAlign.Middle;
             menuItems.Add(uiRect);
             menuItemRestScales.Add(item.transform.localScale);
 

@@ -57,11 +57,11 @@ namespace UIRect.Tests
         }
 
         [Test]
-        public void UIRectRawImage_SetBorderWidth_UpdatesBorderWidth()
+        public void UIRectRawImage_SetStrokeWidth_UpdatesStrokeWidth()
         {
-            _uiRectRawImage.borderWidth = 5f;
+            _uiRectRawImage.strokeWidth = 5f;
 
-            Assert.AreEqual(5f, _uiRectRawImage.borderWidth);
+            Assert.AreEqual(5f, _uiRectRawImage.strokeWidth);
         }
 
         [Test]
@@ -94,17 +94,17 @@ namespace UIRect.Tests
         public void UIRectRawImage_SetStyle_PartialStyle_OnlyChangesSpecifiedProperties()
         {
             _uiRectRawImage.fillColor = Color.red;
-            _uiRectRawImage.borderWidth = 3f;
+            _uiRectRawImage.strokeWidth = 3f;
 
             var partialStyle = new UIRectStyle
             {
-                BorderWidth = 10f
+                StrokeWidth = 10f
             };
 
             _uiRectRawImage.Style = partialStyle;
 
             Assert.AreEqual(Color.red, _uiRectRawImage.fillColor, "fillColor should not change");
-            Assert.AreEqual(10f, _uiRectRawImage.borderWidth, "borderWidth should update");
+            Assert.AreEqual(10f, _uiRectRawImage.strokeWidth, "strokeWidth should update");
         }
 
         [Test]

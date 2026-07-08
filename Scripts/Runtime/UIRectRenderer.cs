@@ -18,9 +18,9 @@ namespace UIRect
         public Color fillColor;
         public Vector4 radius;     // top-left | top-right | bottom-right | bottom-left
         public Vector3 translate;  // offset applied to the rendered rect (does not affect layout)
-        public Color borderColor;
-        public float borderWidth;
-        public BorderAlign borderAlign;
+        public Color strokeColor;
+        public float strokeWidth;
+        public StrokeAlign strokeAlign;
         public List<UIRectShadow> shadows; // null and empty both mean "no shadows"
         public float bevelWidth;
         public float bevelStrength;
@@ -117,7 +117,7 @@ namespace UIRect
             SnapshotBaseVertices(vh, baseVertCount, out Vector2 uvCenter, out Vector3 posCenter);
 
             BuildQuad(ref _mainVertices, _baseVertices, baseVertCount, uvCenter, posCenter, p.translate, p,
-                p.fillColor, p.borderWidth * 2, BoxRenderMode.Fill);
+                p.fillColor, p.strokeWidth * 2, BoxRenderMode.Fill);
 
             vh.Clear();
 
@@ -156,7 +156,7 @@ namespace UIRect
 
         // Copies the base mesh into _baseVertices (so quads can still be built after vh.Clear())
         // and computes its centroids in the same pass. The centroids are the fixed points the quad
-        // is scaled about when it grows to fit Middle/Outside borders or shadow blur. uvCenter
+        // is scaled about when it grows to fit Middle/Outside strokes or shadow blur. uvCenter
         // equals (0.5, 0.5) for a full quad, the sprite-atlas center for an Image, or the uvRect
         // center for a RawImage - all without type knowledge. posCenter equals the rect's local
         // center, which is offset from the origin when the pivot is not centered; scaling position
@@ -199,17 +199,17 @@ namespace UIRect
             Vector2 packedRadii = PackRadii(p.radius, size);
 
             float packedFillColor = ShaderPacker.PackColor(fill);
-            float packedBorderColor = ShaderPacker.PackColor(p.borderColor);
-            float borderAlignOffset = BorderAlignOffset(p.borderAlign);
+            float packedStrokeColor = ShaderPacker.PackColor(p.strokeColor);
+            float strokeAlignOffset = StrokeAlignOffset(p.strokeAlign);
 
             Vector4 uv1 = new Vector4(size.x, size.y, packedRadii.x, packedRadii.y);
-            Vector4 uv2 = new Vector4(packedFillColor, packedBorderColor, effectWidth, borderAlignOffset);
+            Vector4 uv2 = new Vector4(packedFillColor, packedStrokeColor, effectWidth, strokeAlignOffset);
             // uv3.z is read as bevelStrength by the fill/bevel path and as shadowSpread by the shadow
             // path, so the shadow quad must carry its spread here (it has no use for bevelStrength).
             float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? spread : p.bevelStrength;
             Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, strengthOrSpread, 0);
 
-            // The inner-shadow path ignores borderColor / borderAlign / bevelWidth, so those slots
+            // The inner-shadow path ignores strokeColor / strokeAlign / bevelWidth, so those slots
             // carry its spread and 3D offset instead. The offset stays in local (rect) units here;
             // the shader converts it to pos-space and folds in the Z-driven parallax.
             if (renderMode == BoxRenderMode.InnerShadow)
@@ -218,7 +218,7 @@ namespace UIRect
                 uv3 = new Vector4((int)renderMode, 0, spread, innerOffset.y);
             }
 
-            float quadSizeOffset = borderAlignOffset * effectWidth;
+            float quadSizeOffset = strokeAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
                 quadSizeOffset = effectWidth * 3f + spread; // ~3 sigma for the Gaussian blur
             else if (renderMode == BoxRenderMode.InnerShadow)
@@ -249,7 +249,7 @@ namespace UIRect
                 verts[i].uv0 += uvCenter4;
 
                 verts[i].uv1 = uv1; // (width, height, topRadii, bottomRadii)
-                verts[i].uv2 = uv2; // (fillColor, borderColor, effectWidth, borderOffset)
+                verts[i].uv2 = uv2; // (fillColor, strokeColor, effectWidth, strokeOffset)
                 verts[i].uv3 = uv3; // (renderMode, bevelWidth, bevelStrength, 0)
             }
         }
@@ -277,11 +277,11 @@ namespace UIRect
             return new Vector2(topRadii, bottomRadii);
         }
 
-        private static float BorderAlignOffset(BorderAlign align) => align switch
+        private static float StrokeAlignOffset(StrokeAlign align) => align switch
         {
-            BorderAlign.Middle => 0.5f,
-            BorderAlign.Inside => 0f,
-            BorderAlign.Outside => 1f,
+            StrokeAlign.Middle => 0.5f,
+            StrokeAlign.Inside => 0f,
+            StrokeAlign.Outside => 1f,
             _ => 0f
         };
 

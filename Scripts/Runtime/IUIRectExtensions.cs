@@ -17,9 +17,9 @@ namespace UIRect
             Radius = h.Radius,
             Translate = h.Translate,
 
-            BorderColor = h.BorderColor,
-            BorderWidth = h.BorderWidth,
-            BorderAlign = h.BorderAlignment,
+            StrokeColor = h.StrokeColor,
+            StrokeWidth = h.StrokeWidth,
+            StrokeAlign = h.StrokeAlignment,
 
             // Copy: style snapshots (e.g. animation endpoints) must not alias the live list.
             // null round-trips as null (the renderer treats null as "no shadows").
@@ -39,9 +39,9 @@ namespace UIRect
             h.Radius = style.Radius ?? h.Radius;
             h.Translate = style.Translate ?? h.Translate;
 
-            h.BorderColor = style.BorderColor ?? h.BorderColor;
-            h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
-            h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
+            h.StrokeColor = style.StrokeColor ?? h.StrokeColor;
+            h.StrokeWidth = style.StrokeWidth ?? h.StrokeWidth;
+            h.StrokeAlignment = style.StrokeAlign ?? h.StrokeAlignment;
 
             // Copy into the existing list where possible (the host's list is a serialized field
             // callers may hold). Skip when the two alias the same instance — Clear() would empty
@@ -69,9 +69,9 @@ namespace UIRect
             fillColor = h.FillColor,
             radius = h.Radius,
             translate = h.Translate,
-            borderColor = h.BorderColor,
-            borderWidth = h.BorderWidth,
-            borderAlign = h.BorderAlignment,
+            strokeColor = h.StrokeColor,
+            strokeWidth = h.StrokeWidth,
+            strokeAlign = h.StrokeAlignment,
             shadows = h.Shadows, // live reference is fine: the renderer only reads, within this frame
             bevelWidth = h.BevelWidth,
             bevelStrength = h.BevelStrength,

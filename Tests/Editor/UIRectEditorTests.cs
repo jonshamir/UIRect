@@ -59,11 +59,11 @@ namespace UIRect.Tests.Editor
         }
 
         [Test]
-        public void UIRect_SetBorderWidth_UpdatesBorderWidth()
+        public void UIRect_SetStrokeWidth_UpdatesStrokeWidth()
         {
-            _uiRect.borderWidth = 5f;
+            _uiRect.strokeWidth = 5f;
 
-            Assert.AreEqual(5f, _uiRect.borderWidth);
+            Assert.AreEqual(5f, _uiRect.strokeWidth);
         }
 
         [Test]
@@ -96,17 +96,17 @@ namespace UIRect.Tests.Editor
         public void UIRect_SetStyle_PartialStyle_OnlyChangesSpecifiedProperties()
         {
             _uiRect.fillColor = Color.red;
-            _uiRect.borderWidth = 3f;
+            _uiRect.strokeWidth = 3f;
 
             var partialStyle = new UIRectStyle
             {
-                BorderWidth = 10f
+                StrokeWidth = 10f
             };
 
             _uiRect.Style = partialStyle;
 
             Assert.AreEqual(Color.red, _uiRect.fillColor, "fillColor should not change");
-            Assert.AreEqual(10f, _uiRect.borderWidth, "borderWidth should update");
+            Assert.AreEqual(10f, _uiRect.strokeWidth, "strokeWidth should update");
         }
 
         [Test]

@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace UIRect
 {
     /// <summary>
     /// RawImage variant of <see cref="UIRectImage"/>. Renders the same CSS-like rounded rectangle
-    /// (corner radii, border, shadow/glow, bevel) but is backed by a raw <see cref="Texture"/>
+    /// (corner radii, stroke, shadow/glow, bevel) but is backed by a raw <see cref="Texture"/>
     /// instead of a sprite, so it can display videos, RenderTextures and other dynamic content.
     ///
     /// All styling, mesh generation and animation are shared with <see cref="UIRectImage"/> via
@@ -29,10 +30,10 @@ namespace UIRect
         public Vector4 radius = new(15, 15, 15, 15);
         public Vector3 translate = Vector3.zero;
 
-        // Border
-        public Color borderColor = new(0, 0, 0, 1);
-        public float borderWidth = 0;
-        public BorderAlign borderAlign = BorderAlign.Inside;
+        // Stroke
+        [FormerlySerializedAs("borderColor")] public Color strokeColor = new(0, 0, 0, 1);
+        [FormerlySerializedAs("borderWidth")] public float strokeWidth = 0;
+        [FormerlySerializedAs("borderAlign")] public StrokeAlign strokeAlign = StrokeAlign.Inside;
 
         // Shadows (outer and inner mixed; index 0 is topmost)
         public List<UIRectShadow> shadows = new();
@@ -55,9 +56,9 @@ namespace UIRect
         Color IUIRect.FillColor { get => fillColor; set => fillColor = value; }
         Vector4 IUIRect.Radius { get => radius; set => radius = value; }
         Vector3 IUIRect.Translate { get => translate; set => translate = value; }
-        Color IUIRect.BorderColor { get => borderColor; set => borderColor = value; }
-        float IUIRect.BorderWidth { get => borderWidth; set => borderWidth = value; }
-        BorderAlign IUIRect.BorderAlignment { get => borderAlign; set => borderAlign = value; }
+        Color IUIRect.StrokeColor { get => strokeColor; set => strokeColor = value; }
+        float IUIRect.StrokeWidth { get => strokeWidth; set => strokeWidth = value; }
+        StrokeAlign IUIRect.StrokeAlignment { get => strokeAlign; set => strokeAlign = value; }
         List<UIRectShadow> IUIRect.Shadows { get => shadows; set => shadows = value; }
         float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
         float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }

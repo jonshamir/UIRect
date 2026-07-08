@@ -25,9 +25,9 @@ namespace UIRect
         Vector4 Radius { get; set; }
         Vector3 Translate { get; set; }
 
-        Color BorderColor { get; set; }
-        float BorderWidth { get; set; }
-        BorderAlign BorderAlignment { get; set; }
+        Color StrokeColor { get; set; }
+        float StrokeWidth { get; set; }
+        StrokeAlign StrokeAlignment { get; set; }
 
         List<UIRectShadow> Shadows { get; set; }
 

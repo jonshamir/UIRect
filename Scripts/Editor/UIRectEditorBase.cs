@@ -28,9 +28,9 @@ namespace UIRect
         private SerializedProperty _translate;
 
         private SerializedProperty _fillColor;
-        private SerializedProperty _borderColor;
-        private SerializedProperty _borderWidth;
-        private SerializedProperty _borderAlign;
+        private SerializedProperty _strokeColor;
+        private SerializedProperty _strokeWidth;
+        private SerializedProperty _strokeAlign;
 
         private SerializedProperty _shadows;
         private ReorderableList _shadowList;
@@ -49,9 +49,9 @@ namespace UIRect
             _translate = serializedObject.FindProperty("translate");
 
             _fillColor = serializedObject.FindProperty("fillColor");
-            _borderColor = serializedObject.FindProperty("borderColor");
-            _borderWidth = serializedObject.FindProperty("borderWidth");
-            _borderAlign = serializedObject.FindProperty("borderAlign");
+            _strokeColor = serializedObject.FindProperty("strokeColor");
+            _strokeWidth = serializedObject.FindProperty("strokeWidth");
+            _strokeAlign = serializedObject.FindProperty("strokeAlign");
 
             _shadows = serializedObject.FindProperty("shadows");
             _shadowList = new ReorderableList(serializedObject, _shadows,
@@ -106,11 +106,11 @@ namespace UIRect
 
             EditorGUILayout.PropertyField(_translate);
 
-            // Border
+            // Stroke
             GUILayout.Space(10);
-            EditorGUILayout.PropertyField(_borderColor);
-            _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Thickness", _borderWidth.floatValue), 0);
-            EditorGUILayout.PropertyField(_borderAlign);
+            EditorGUILayout.PropertyField(_strokeColor);
+            _strokeWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Stroke Width", _strokeWidth.floatValue), 0);
+            EditorGUILayout.PropertyField(_strokeAlign);
 
             // Bevel
             GUILayout.Space(10);
@@ -186,7 +186,7 @@ namespace UIRect
 
             Rect swatch = new Rect(headerRect.xMax - swatchWidth, headerRect.y + 1,
                 swatchWidth, headerRect.height - 2);
-            EditorGUI.DrawRect(swatch, new Color(0f, 0f, 0f, 0.5f)); // border
+            EditorGUI.DrawRect(swatch, new Color(0f, 0f, 0f, 0.5f)); // outline
             EditorGUI.DrawRect(new Rect(swatch.x + 1, swatch.y + 1, swatch.width - 2, swatch.height - 2), color);
 
             Rect textRect = new Rect(headerRect.x, headerRect.y, swatch.x - pad - headerRect.x, headerRect.height);

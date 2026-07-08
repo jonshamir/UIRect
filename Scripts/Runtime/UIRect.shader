@@ -86,7 +86,7 @@ Shader "UI/UIRect"
                 float4 vertex : SV_POSITION;
                 half4 color : COLOR0;
                 half4 fillColor : COLOR1;
-                half4 borderColor : COLOR2;
+                half4 strokeColor : COLOR2;
                 float2 uv : TEXCOORD0;
                 float2 size : TEXCOORD1;
                 float4 radii : TEXCOORD2;
@@ -129,7 +129,7 @@ Shader "UI/UIRect"
                 OUT.uv2 = v.uv2;
                 OUT.uv3 = v.uv3;
                 OUT.fillColor = unpackColor(v.uv2.x);
-                OUT.borderColor = unpackColor(v.uv2.y);
+                OUT.strokeColor = unpackColor(v.uv2.y);
 
                 return OUT;
             }
@@ -159,7 +159,7 @@ Shader "UI/UIRect"
 
                 // Inner (inset) shadow: painted on top of the fill, clipped to the shape, dark near
                 // the inner edge and fading toward the center. Uses the same blurred-box coverage as
-                // the drop shadow, inverted. Returns early so the border/bevel paths never run for it.
+                // the drop shadow, inverted. Returns early so the stroke/bevel paths never run for it.
                 if (boxRenderMode == BOX_RENDER_MODE_INNER_SHADOW)
                 {
                     float spread = IN.uv3.z;
@@ -185,24 +185,24 @@ Shader "UI/UIRect"
                     return color;
                 }
 
-                // Add border
+                // Add stroke
                 if (effectWidth > 0 && boxRenderMode == BOX_RENDER_MODE_FILL)
                 {
-                    float borderOffset = IN.uv2.w;
+                    float strokeOffset = IN.uv2.w;
 
                     // Use at least pixelWidth to prevent aliasing
                     float width = max(effectWidth, pixelWidth);
-                    float thinBorderRatio = effectWidth / width;
+                    float thinStrokeRatio = effectWidth / width;
                     
                     // Calc distances
-                    outerDist = lerp(0, width * borderOffset, thinBorderRatio);
-                    float borderInnerDist = lerp(-width, -width * (1 - borderOffset), thinBorderRatio);
+                    outerDist = lerp(0, width * strokeOffset, thinStrokeRatio);
+                    float strokeInnerDist = lerp(-width, -width * (1 - strokeOffset), thinStrokeRatio);
 
-                    // If the border is thinner than a pixel, fade border color according to pixel coverage
-                    half borderAlpha =  IN.color.a * IN.borderColor.a * thinBorderRatio * (1 - smoothstep(borderInnerDist, borderInnerDist - pixelWidth, dist));
-                    half4 borderColor =  float4(IN.borderColor.xyz, borderAlpha);
+                    // If the stroke is thinner than a pixel, fade stroke color according to pixel coverage
+                    half strokeAlpha =  IN.color.a * IN.strokeColor.a * thinStrokeRatio * (1 - smoothstep(strokeInnerDist, strokeInnerDist - pixelWidth, dist));
+                    half4 strokeColor =  float4(IN.strokeColor.xyz, strokeAlpha);
                     
-                    color = overlayColors(color, borderColor);
+                    color = overlayColors(color, strokeColor);
                 }
 
                 #ifdef _USE_BEVELS
@@ -286,7 +286,7 @@ Shader "UI/UIRect"
                     return color;
                 }
 
-                // Remove pixels outside the outer border
+                // Remove pixels outside the outer stroke
                 color.a *= smoothstep(outerDist, outerDist - pixelWidth, dist);
 
                 #if !defined(UNITY_COLORSPACE_GAMMA)

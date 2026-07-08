@@ -13,7 +13,7 @@ namespace UIRect.Tests
             {
                 FillColor = Color.black,
                 Radius = Vector4.zero,
-                BorderWidth = 0f,
+                StrokeWidth = 0f,
                 Shadows = new List<UIRectShadow> { new UIRectShadow { size = 0f } }
             };
 
@@ -21,7 +21,7 @@ namespace UIRect.Tests
             {
                 FillColor = Color.white,
                 Radius = new Vector4(20, 20, 20, 20),
-                BorderWidth = 10f,
+                StrokeWidth = 10f,
                 Shadows = new List<UIRectShadow> { new UIRectShadow { size = 20f } }
             };
 
@@ -29,7 +29,7 @@ namespace UIRect.Tests
 
             Assert.AreEqual(new Color(0.5f, 0.5f, 0.5f, 1f), result.FillColor);
             Assert.AreEqual(new Vector4(10, 10, 10, 10), result.Radius);
-            Assert.AreEqual(5f, result.BorderWidth);
+            Assert.AreEqual(5f, result.StrokeWidth);
             Assert.AreEqual(10f, result.Shadows[0].size);
         }
 
@@ -69,12 +69,12 @@ namespace UIRect.Tests
         [Test]
         public void Lerp_WithOvershoot_AllowsValuesAboveOne()
         {
-            var style1 = new UIRectStyle { BorderWidth = 0f };
-            var style2 = new UIRectStyle { BorderWidth = 10f };
+            var style1 = new UIRectStyle { StrokeWidth = 0f };
+            var style2 = new UIRectStyle { StrokeWidth = 10f };
 
             var result = UIRectStyle.Lerp(style1, style2, 1.5f);
 
-            Assert.AreEqual(15f, result.BorderWidth);
+            Assert.AreEqual(15f, result.StrokeWidth);
         }
 
         [Test]
@@ -178,9 +178,9 @@ namespace UIRect.Tests
             Assert.IsNull(style.FillColor);
             Assert.IsNull(style.Radius);
             Assert.IsNull(style.Translate);
-            Assert.IsNull(style.BorderColor);
-            Assert.IsNull(style.BorderWidth);
-            Assert.IsNull(style.BorderAlign);
+            Assert.IsNull(style.StrokeColor);
+            Assert.IsNull(style.StrokeWidth);
+            Assert.IsNull(style.StrokeAlign);
             Assert.IsNull(style.Shadows);
             Assert.IsNull(style.BevelWidth);
             Assert.IsNull(style.BevelStrength);

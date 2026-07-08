@@ -4,8 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 UIRect is a rounded rectangle-drawing library for Unity UI (a.k.a. uGUI)
-UIRect extends the standard Image component with styling capabilities including rounded corners, borders, shadows, and animations.
-- Basic UI features you would expect - fill, rounding, border, shadow, etc.
+UIRect extends the standard Image component with styling capabilities including rounded corners, strokes, shadows, and animations.
+- Basic UI features you would expect - fill, rounding, stroke, shadow, etc.
 - High-quality, antialiased rendering with
 - Performant, no external dependencies
 - Custom editor for tweaking in Unity
@@ -14,13 +14,13 @@ UIRect extends the standard Image component with styling capabilities including 
 ## Why is this needed?
 
 Although Unity has been pushing [UI Toolkit](https://docs.unity3d.com/6000.1/Documentation/Manual/UIElements.html) as the main UI framework for Unity apps, uGUI remains widely used for its simplicity, familiarity and true 3D world-space support.
-However, creating basic effects such as borders and rounded corners remains surprisingly difficult with multiple assets and libraries, some paid and some free, with various issues (Not all effects are supported, no proper antialiasing, performance issues, etc.)
+However, creating basic effects such as strokes and rounded corners remains surprisingly difficult with multiple assets and libraries, some paid and some free, with various issues (Not all effects are supported, no proper antialiasing, performance issues, etc.)
 This package attempts to fix this by creating a free and open source UI primitive to build on.
 
 ## Features
 
 - **Rounded Corners** - Independent control for each corner radius
-- **Borders** - Customizable width, color, and alignment (inside, middle, outside)
+- **Strokes** - Customizable width, color, and alignment (inside, middle, outside)
 - **Shadows** - Soft shadows with size, spread, offset, and color control
 - **Bevels** - Parallax-mapped bevels with specular highlights
 - **Smooth Animations** - Built-in animation system with custom easing curves
@@ -56,8 +56,8 @@ UIRectImage rect = gameObject.AddComponent<UIRectImage>();
 // Set basic properties
 rect.fillColor = Color.blue;
 rect.radius = new Vector4(20, 20, 20, 20); // All corners 20px
-rect.borderWidth = 5;
-rect.borderColor = Color.white;
+rect.strokeWidth = 5;
+rect.strokeColor = Color.white;
 ```
 
 ### Styling with UIRectStyle
@@ -71,8 +71,8 @@ UIRectStyle cardStyle = new UIRectStyle
 {
     FillColor = Color.white,
     Radius = new Vector4(15, 15, 15, 15),
-    BorderColor = new Color(0.8f, 0.8f, 0.8f),
-    BorderWidth = 2,
+    StrokeColor = new Color(0.8f, 0.8f, 0.8f),
+    StrokeWidth = 2,
     Shadows = new List<UIRectShadow>
     {
         new UIRectShadow
@@ -94,15 +94,15 @@ Any style attributes that are not included (or `null`) will not be overwritten, 
 All properties in `UIRectStyle` are nullable (`Color?`, `float?`, etc.), allowing partial style updates:
 
 ```csharp
-// Only change the border, leave everything else unchanged
-UIRectStyle borderUpdate = new UIRectStyle
+// Only change the stroke, leave everything else unchanged
+UIRectStyle strokeUpdate = new UIRectStyle
 {
-    BorderWidth = 10,
-    BorderColor = Color.red
+    StrokeWidth = 10,
+    StrokeColor = Color.red
     // All other properties remain as they were
 };
 
-uiRect.Style = borderUpdate;
+uiRect.Style = strokeUpdate;
 ```
 
 ## Animation
@@ -114,7 +114,7 @@ UIRect includes a built-in animation system that smoothly interpolates between s
 UIRectStyle hoverStyle = new UIRectStyle
 {
     FillColor = Color.cyan,
-    BorderWidth = 8,
+    StrokeWidth = 8,
     Shadows = new List<UIRectShadow>
     {
         new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 20, offset = new Vector3(0, -5, 0) }
@@ -152,8 +152,8 @@ public class UIRectButton : MonoBehaviour
         normalStyle = new UIRectStyle
         {
             FillColor = Color.white,
-            BorderWidth = 2,
-            BorderColor = Color.gray,
+            StrokeWidth = 2,
+            StrokeColor = Color.gray,
             Radius = new Vector4(10, 10, 10, 10),
             Shadows = new List<UIRectShadow>
             {
@@ -164,7 +164,7 @@ public class UIRectButton : MonoBehaviour
         hoverStyle = new UIRectStyle
         {
             FillColor = new Color(0.9f, 0.9f, 1f),
-            BorderColor = Color.blue,
+            StrokeColor = Color.blue,
             Shadows = new List<UIRectShadow>
             {
                 new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 15, offset = new Vector3(0, -2, 0) }
