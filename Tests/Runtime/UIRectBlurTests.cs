@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace JonShamir.UIRectTests
+namespace UIRect.Tests
 {
     public class UIRectBlurTests
     {
