@@ -35,9 +35,8 @@ namespace UIRect
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
             => Lerp(s1, s2, t, null);
 
-        // Overload that lerps shadows into a caller-supplied buffer instead of allocating a fresh
-        // list. The animator passes a reusable buffer so per-frame animation allocates nothing;
-        // callers that pass null (including the 3-arg overload) get the allocating behaviour.
+        // Overload that lerps shadows into a caller-supplied buffer. The animator passes a reusable
+        // buffer so per-frame animation allocates nothing; a null buffer allocates a fresh list.
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadow> shadowBuffer)
         {
             return new UIRectStyle()
@@ -65,12 +64,9 @@ namespace UIRect
             };
         }
 
-        // Index-matched shadow interpolation. Entries beyond the shorter list keep their own
-        // params and fade their alpha (in when only in s2, out when only in s1), so animating
-        // between styles with different shadow counts stays smooth. Reuses <paramref name="buffer"/>
-        // when non-null (cleared and refilled) so the animation path allocates nothing per frame;
-        // when null, allocates a fresh list. A null source/target propagates to a null result and
-        // leaves the buffer untouched.
+        // Index-matched shadow interpolation. Entries beyond the shorter list fade their alpha (in
+        // when only in b, out when only in a), so animating between different shadow counts stays
+        // smooth. A null source or target propagates to a null result.
         private static List<UIRectShadow> LerpShadowsInto(List<UIRectShadow> a, List<UIRectShadow> b, float t,
             List<UIRectShadow> buffer)
         {
@@ -84,8 +80,7 @@ namespace UIRect
             for (int i = 0; i < shared; i++)
                 result.Add(UIRectShadow.Lerp(a[i], b[i], t));
 
-            // Extra source shadows fade out, then drop once fully faded (t >= 1), so the finished
-            // list matches the target's count instead of retaining zero-alpha phantom entries.
+            // Extra source shadows fade out, then drop at t >= 1 so the finished list matches the target's count.
             if (t < 1f)
                 for (int i = shared; i < a.Count; i++)
                     result.Add(FadeAlpha(a[i], Mathf.LerpUnclamped(a[i].color.a, 0, t)));

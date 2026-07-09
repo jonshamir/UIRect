@@ -60,10 +60,8 @@ namespace UIRect
                 // displayHeader:false still reserves the full headerHeight (18px) as empty space at
                 // the top; collapse it so the list starts flush instead of with a stray gap.
                 headerHeight = 2,
-                // Field value is only used for the empty-list placeholder; keep it to one line.
+                // Only used for the empty-list placeholder; real rows size via elementHeightCallback.
                 elementHeight = EditorGUIUtility.singleLineHeight + 4,
-                // Each row is collapsible: just the foldout header when collapsed,
-                // header + 5 fields when expanded.
                 elementHeightCallback = ShadowElementHeight,
                 drawElementCallback = DrawShadowElement,
                 drawNoneElementCallback = rect => EditorGUI.LabelField(rect, "Shadows"),

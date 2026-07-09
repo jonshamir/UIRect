@@ -43,9 +43,8 @@ namespace UIRect
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
             h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
 
-            // Copy into the existing list where possible (the host's list is a serialized field
-            // callers may hold). Skip when the two alias the same instance — Clear() would empty
-            // the source too. Allocate a fresh list only when the host has none yet.
+            // Copy into the host's existing list (a serialized field callers may hold) rather than
+            // replace it. Skip when the two alias the same instance, else Clear() empties the source.
             if (style.Shadows != null && !ReferenceEquals(style.Shadows, h.Shadows))
             {
                 if (h.Shadows == null)

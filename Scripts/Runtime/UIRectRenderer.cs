@@ -98,8 +98,8 @@ namespace UIRect
 
         private static UIVertex[] _baseVertices = new UIVertex[256];
         private static UIVertex[] _mainVertices = new UIVertex[256];
-        // One scratch buffer serves every shadow quad: AddUIVertexQuad copies the four verts into
-        // the VertexHelper immediately, so the buffer can be reused for any number of shadows.
+        // One scratch buffer serves every shadow quad: AddUIVertexQuad copies the verts out
+        // immediately, so it can be reused for any number of shadows.
         private static UIVertex[] _scratchVertices = new UIVertex[256];
 
         /// <summary>
@@ -141,8 +141,7 @@ namespace UIRect
             AddUIVertexQuad(vh, _mainVertices);
 
             // Inner shadows last, so they render on top of the fill. The quad stays aligned with the
-            // fill (center = p.translate); the offset is applied in the shader, since the quad's own
-            // SDF must match the real shape to clip correctly.
+            // fill (center = p.translate) so its SDF matches the shape; the offset is applied in the shader.
             for (int i = shadowCount - 1; i >= 0; i--)
             {
                 UIRectShadow s = shadows[i];
@@ -154,14 +153,10 @@ namespace UIRect
             }
         }
 
-        // Copies the base mesh into _baseVertices (so quads can still be built after vh.Clear())
-        // and computes its centroids in the same pass. The centroids are the fixed points the quad
-        // is scaled about when it grows to fit Middle/Outside borders or shadow blur. uvCenter
-        // equals (0.5, 0.5) for a full quad, the sprite-atlas center for an Image, or the uvRect
-        // center for a RawImage - all without type knowledge. posCenter equals the rect's local
-        // center, which is offset from the origin when the pivot is not centered; scaling position
-        // about it (rather than the origin) keeps the SDF-defined shape aligned with the geometry
-        // under any anchor/pivot.
+        // Copies the base mesh into _baseVertices (so quads can still be built after vh.Clear()) and
+        // computes its centroids in the same pass. The centroids are the fixed points the quad scales
+        // about as it grows for Middle/Outside borders or shadow blur: uvCenter keeps content UVs
+        // aligned (type-agnostic) and posCenter keeps the SDF shape aligned under any anchor/pivot.
         private static void SnapshotBaseVertices(VertexHelper vh, int count,
             out Vector2 uvCenter, out Vector3 posCenter)
         {
