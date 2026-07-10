@@ -172,8 +172,6 @@ Shader "UI/UIRect"
                     // quad is viewed at an angle; worldPosition is already interpolated for lighting.
                     float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
                     viewDir = UnityWorldToObjectDir(viewDir);
-                    // Negated: a positive Z raises the shadow caster toward the camera, whose
-                    // ground projection lands at center - viewDir.xy/viewDir.z * offsetZ.
                     float2 parallax = -viewDir.xy / viewDir.z * offsetZ;
 
                     // Local units → pos-space: pos = (uv*2-1)*size spans twice the local extent.
