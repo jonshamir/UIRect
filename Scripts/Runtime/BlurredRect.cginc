@@ -80,3 +80,28 @@ float roundedBoxShadow(float2 pos, float2 halfSize, float sigma, float4 radius)
 
   return value * INV_MASS_3SIGMA;
 }
+
+// Guarded blurred-box coverage. The 4-stratum sliced integral bands at rounded
+// corners when the blur is small relative to the corner radius, so fall back to
+// the exact SDF-erf coverage there and only hand off to roundedBoxShadow once the
+// blur is wide enough. radius must already be clamped to [0, min(halfSize)].
+float roundedBoxShadowGuarded(float2 pos, float2 halfSize, float sigma, float4 radius)
+{
+  float shadowDist = sdgRoundedBox(pos, halfSize, radius).x;
+
+  [branch]
+  if (abs(shadowDist) > 3.0 * sigma)
+    // Beyond +-3 sigma the gaussian has no support: skip the integral
+    return shadowDist > 0.0 ? 0.0 : 1.0;
+
+  float mask = 0.5 - 0.5 * erf(shadowDist * (SQRT_HALF / sigma));
+
+  float2 sideRadii = (pos.x > 0.0) ? radius.yz : radius.xw;
+  float quadrantRadius = (pos.y > 0.0) ? sideRadii.x : sideRadii.y;
+  float t = smoothstep(0.0625, 0.125, sigma / max(quadrantRadius, 0.0001));
+  [branch]
+  if (t > 0.0)
+    mask = lerp(mask, roundedBoxShadow(pos, halfSize, sigma, radius), t);
+
+  return mask;
+}
