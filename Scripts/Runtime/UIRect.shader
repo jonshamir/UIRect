@@ -172,7 +172,10 @@ Shader "UI/UIRect"
                     // quad is viewed at an angle; worldPosition is already interpolated for lighting.
                     float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
                     viewDir = UnityWorldToObjectDir(viewDir);
-                    float2 parallax = -viewDir.xy / viewDir.z * offsetZ;
+                    // Object-space viewDir.z is usually negative (local +Z faces into the screen).
+                    // Push it off zero on its own side; a plain max() would flip the sign and blow up.
+                    float zSafe = viewDir.z >= 0.0 ? max(viewDir.z, 1e-4) : min(viewDir.z, -1e-4);
+                    float2 parallax = -viewDir.xy / zSafe * offsetZ;
 
                     // Local units → pos-space: pos = (uv*2-1)*size spans twice the local extent.
                     float2 offset = (offsetXY + parallax) * 2.0;

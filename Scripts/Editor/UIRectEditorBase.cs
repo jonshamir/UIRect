@@ -115,12 +115,11 @@ namespace UIRect
             EditorGUILayout.PropertyField(_bevelWidth);
             EditorGUILayout.PropertyField(_bevelStrength);
 
-            // Shadows (last)
+            // Shadows (last). ReorderableList edits every selected object's array through the
+            // SerializedProperty, so per-field edits apply across the whole selection; entries that
+            // differ show Unity's mixed-value dash.
             GUILayout.Space(10);
-            if (_shadows.hasMultipleDifferentValues)
-                EditorGUILayout.HelpBox("Shadow lists differ across the selected objects.", MessageType.Info);
-            else
-                _shadowList.DoLayoutList();
+            _shadowList.DoLayoutList();
 
             GUILayout.Space(5);
 

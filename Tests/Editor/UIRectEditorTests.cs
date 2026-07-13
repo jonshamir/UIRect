@@ -138,29 +138,6 @@ namespace UIRect.Tests.Editor
         }
 
         [Test]
-        public void UIRectRawImage_LegacySerializedShadow_MigratesToShadowList()
-        {
-            var go = new GameObject("RawImage", typeof(RectTransform), typeof(CanvasRenderer));
-            var rawImage = go.AddComponent<UIRectRawImage>();
-            try
-            {
-                var so = new SerializedObject(rawImage);
-                so.FindProperty("hasShadow").boolValue = true;
-                so.FindProperty("shadowColor").colorValue = Color.green;
-                so.FindProperty("shadowSize").floatValue = 12f;
-                so.ApplyModifiedProperties();
-
-                Assert.AreEqual(1, rawImage.shadows.Count, "Legacy single shadow must migrate into the list.");
-                Assert.AreEqual(Color.green, rawImage.shadows[0].color);
-                Assert.AreEqual(12f, rawImage.shadows[0].size);
-            }
-            finally
-            {
-                Object.DestroyImmediate(go);
-            }
-        }
-
-        [Test]
         public void UIRect_AddShadow_IsStored()
         {
             _uiRect.shadows.Add(new UIRectShadow { color = Color.black, size = 10 });

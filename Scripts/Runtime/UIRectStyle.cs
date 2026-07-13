@@ -41,28 +41,31 @@ namespace UIRect
         {
             return new UIRectStyle()
             {
-                FillColor = (s1.FillColor == null || s2.FillColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.FillColor, (Color)s2.FillColor, t),
-                Radius = (s1.Radius == null || s2.Radius == null) ? null :
-                    Vector4.LerpUnclamped((Vector4)s1.Radius, (Vector4)s2.Radius, t),
-                Translate = (s1.Translate == null || s2.Translate == null) ? null :
-                    Vector3.LerpUnclamped((Vector3)s1.Translate, (Vector3)s2.Translate, t),
+                FillColor = LerpN(s1.FillColor, s2.FillColor, t),
+                Radius = LerpN(s1.Radius, s2.Radius, t),
+                Translate = LerpN(s1.Translate, s2.Translate, t),
 
-
-                BorderColor = (s1.BorderColor == null || s2.BorderColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.BorderColor, (Color)s2.BorderColor, t),
-                BorderWidth = (s1.BorderWidth == null || s2.BorderWidth == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BorderWidth, (float)s2.BorderWidth, t),
+                BorderColor = LerpN(s1.BorderColor, s2.BorderColor, t),
+                BorderWidth = LerpN(s1.BorderWidth, s2.BorderWidth, t),
 
                 Shadows = LerpShadowsInto(s1.Shadows, s2.Shadows, t, shadowBuffer),
 
-                BevelWidth = (s1.BevelWidth == null || s2.BevelWidth == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BevelWidth, (float)s2.BevelWidth, t),
-                BevelStrength = (s1.BevelStrength == null || s2.BevelStrength == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BevelStrength, (float)s2.BevelStrength, t),
-
+                BevelWidth = LerpN(s1.BevelWidth, s2.BevelWidth, t),
+                BevelStrength = LerpN(s1.BevelStrength, s2.BevelStrength, t),
             };
         }
+
+        // Nullable LerpUnclamped: a null endpoint (an unset style member) propagates to null, matching
+        // the "unset stays unset" contract of every member above. Overloaded per type because C# can't
+        // interpolate a generic T.
+        private static Color? LerpN(Color? a, Color? b, float t)
+            => (a == null || b == null) ? null : Color.LerpUnclamped(a.Value, b.Value, t);
+        private static Vector4? LerpN(Vector4? a, Vector4? b, float t)
+            => (a == null || b == null) ? null : Vector4.LerpUnclamped(a.Value, b.Value, t);
+        private static Vector3? LerpN(Vector3? a, Vector3? b, float t)
+            => (a == null || b == null) ? null : Vector3.LerpUnclamped(a.Value, b.Value, t);
+        private static float? LerpN(float? a, float? b, float t)
+            => (a == null || b == null) ? null : Mathf.LerpUnclamped(a.Value, b.Value, t);
 
         // Index-matched shadow interpolation. Entries beyond the shorter list fade their alpha (in
         // when only in b, out when only in a), so animating between different shadow counts stays
@@ -81,11 +84,14 @@ namespace UIRect
                 result.Add(UIRectShadow.Lerp(a[i], b[i], t));
 
             // Extra source shadows fade out, then drop at t >= 1 so the finished list matches the target's count.
+            // The alpha fades use Mathf.Lerp (t clamped to [0,1]) so an overshoot ease curve — which
+            // legitimately drives eased t past [0,1] for the index-matched Lerps above — can't push a
+            // fading shadow's alpha brighter than its endpoint or negative.
             if (t < 1f)
                 for (int i = shared; i < a.Count; i++)
-                    result.Add(FadeAlpha(a[i], Mathf.LerpUnclamped(a[i].color.a, 0, t)));
+                    result.Add(FadeAlpha(a[i], Mathf.Lerp(a[i].color.a, 0, t)));
             for (int i = shared; i < b.Count; i++) // extra target shadows fade in
-                result.Add(FadeAlpha(b[i], Mathf.LerpUnclamped(0, b[i].color.a, t)));
+                result.Add(FadeAlpha(b[i], Mathf.Lerp(0, b[i].color.a, t)));
 
             return result;
         }
