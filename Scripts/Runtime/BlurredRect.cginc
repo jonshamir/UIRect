@@ -81,11 +81,11 @@ float roundedBoxShadow(float2 pos, float2 halfSize, float sigma, float4 radius)
   return value * INV_MASS_3SIGMA;
 }
 
-// Guarded blurred-box coverage. The 4-stratum sliced integral bands at rounded
-// corners when the blur is small relative to the corner radius, so fall back to
-// the exact SDF-erf coverage there and only hand off to roundedBoxShadow once the
+// Blurred rounded-box coverage in [0,1]. The 4-stratum sliced integral bands at
+// rounded corners when the blur is small relative to the corner radius, so fall back
+// to the exact SDF-erf coverage there and only hand off to roundedBoxShadow once the
 // blur is wide enough. radius must already be clamped to [0, min(halfSize)].
-float roundedBoxShadowGuarded(float2 pos, float2 halfSize, float sigma, float4 radius)
+float blurredRoundedBoxCoverage(float2 pos, float2 halfSize, float sigma, float4 radius)
 {
   float shadowDist = sdgRoundedBox(pos, halfSize, radius).x;
 

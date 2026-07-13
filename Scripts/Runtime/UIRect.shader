@@ -185,7 +185,7 @@ Shader "UI/UIRect"
                     // spread > size case the drop path never hits.
                     float2 innerHalfSize = IN.size - spread;
                     float4 innerRadius = clamp(IN.radii * 2 - spread, 0.0, max(0.0, min(innerHalfSize.x, innerHalfSize.y)));
-                    float coverage = roundedBoxShadowGuarded(pos - offset, innerHalfSize, blur, innerRadius);
+                    float coverage = blurredRoundedBoxCoverage(pos - offset, innerHalfSize, blur, innerRadius);
                     float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
 
                     color.a *= (1 - coverage) * insideMask;
@@ -265,7 +265,7 @@ Shader "UI/UIRect"
                     // either corrupts the slice geometry, so clamp per-fragment
                     float4 radius = clamp(IN.radii * 2 + antialiasingOffset.xxxx, 0.0, min(size.x, size.y));
 
-                    float mask = roundedBoxShadowGuarded(pos, size, blur, radius);
+                    float mask = blurredRoundedBoxCoverage(pos, size, blur, radius);
 
                     color.a *= mask;
                     return color;
