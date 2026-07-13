@@ -65,21 +65,19 @@ rect.borderColor = Color.white;
 Use `UIRectStyle` to define and apply styles:
 
 ```csharp
-using System.Collections.Generic; // for the Shadows list
-
 UIRectStyle cardStyle = new UIRectStyle
 {
     FillColor = Color.white,
     Radius = new Vector4(15, 15, 15, 15),
     BorderColor = new Color(0.8f, 0.8f, 0.8f),
     BorderWidth = 2,
-    Shadows = new List<UIRectShadow>
+    Shadows = new()
     {
-        new UIRectShadow
+        new()
         {
-            color = new Color(0, 0, 0, 0.3f),
+            color = new(0, 0, 0, 0.3f),
             size = 10,
-            offset = new Vector3(0, -5, 0)
+            offset = new(0, -5, 0)
         }
     }
 };
@@ -115,9 +113,14 @@ UIRectStyle hoverStyle = new UIRectStyle
 {
     FillColor = Color.cyan,
     BorderWidth = 8,
-    Shadows = new List<UIRectShadow>
+    Shadows = new()
     {
-        new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 20, offset = new Vector3(0, -5, 0) }
+        new()
+        {
+            color = new(0, 0, 0, 0.3f),
+            size = 20,
+            offset = new(0, -5, 0)
+        }
     }
 };
 
@@ -155,9 +158,14 @@ public class UIRectButton : MonoBehaviour
             BorderWidth = 2,
             BorderColor = Color.gray,
             Radius = new Vector4(10, 10, 10, 10),
-            Shadows = new List<UIRectShadow>
+            Shadows = new()
             {
-                new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 5, offset = new Vector3(0, -2, 0) }
+                new()
+                {
+                    color = new(0, 0, 0, 0.3f),
+                    size = 5,
+                    offset = new(0, -2, 0)
+                }
             }
         };
 
@@ -165,9 +173,14 @@ public class UIRectButton : MonoBehaviour
         {
             FillColor = new Color(0.9f, 0.9f, 1f),
             BorderColor = Color.blue,
-            Shadows = new List<UIRectShadow>
+            Shadows = new()
             {
-                new UIRectShadow { color = new Color(0, 0, 0, 0.3f), size = 15, offset = new Vector3(0, -2, 0) }
+                new()
+                {
+                    color = new(0, 0, 0, 0.3f),
+                    size = 15,
+                    offset = new(0, -2, 0)
+                }
             }
         };
 
