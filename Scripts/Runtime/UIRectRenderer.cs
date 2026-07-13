@@ -63,10 +63,9 @@ namespace UIRect
             return material;
         }
 
-        // Destroys the cached materials and drops the shader reference. The cache is rebuilt lazily on
-        // the next GetMaterial call, so this is safe to run whenever the statics would otherwise leak:
-        // before an editor domain reload and when a player quits (see the hooks below). The shader is
-        // borrowed from Shader.Find, not owned here, so it is only unreferenced - never destroyed.
+        // Destroys the cached materials and drops the shader reference; the cache rebuilds lazily on
+        // the next GetMaterial call. Run before an editor domain reload and on player quit (hooks
+        // below). The shader is borrowed from Shader.Find, so it's only unreferenced, never destroyed.
         private static void ReleaseMaterials()
         {
             foreach (var material in _materials.Values)
@@ -153,10 +152,10 @@ namespace UIRect
             }
         }
 
-        // Copies the base mesh into _baseVertices (so quads can still be built after vh.Clear()) and
-        // computes its centroids in the same pass. The centroids are the fixed points the quad scales
-        // about as it grows for Middle/Outside borders or shadow blur: uvCenter keeps content UVs
-        // aligned (type-agnostic) and posCenter keeps the SDF shape aligned under any anchor/pivot.
+        // Copies the base mesh into _baseVertices (so quads survive vh.Clear()) and computes its
+        // centroids in the same pass. Quads scale about these centroids as they grow for
+        // Middle/Outside borders or shadow blur: uvCenter keeps content UVs aligned, posCenter keeps
+        // the SDF shape aligned under any anchor/pivot.
         private static void SnapshotBaseVertices(VertexHelper vh, int count,
             out Vector2 uvCenter, out Vector3 posCenter)
         {
@@ -199,14 +198,14 @@ namespace UIRect
 
             Vector4 uv1 = new Vector4(size.x, size.y, packedRadii.x, packedRadii.y);
             Vector4 uv2 = new Vector4(packedFillColor, packedBorderColor, effectWidth, borderAlignOffset);
-            // uv3.z is read as bevelStrength by the fill/bevel path and as shadowSpread by the shadow
-            // path, so the shadow quad must carry its spread here (it has no use for bevelStrength).
+            // uv3.z is read as bevelStrength by the fill/bevel path, as shadowSpread by the shadow
+            // path — so shadow quads carry spread here instead.
             float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? spread : p.bevelStrength;
             Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, strengthOrSpread, 0);
 
             // The inner-shadow path ignores borderColor / borderAlign / bevelWidth, so those slots
-            // carry its spread and 3D offset instead. The offset stays in local (rect) units here;
-            // the shader converts it to pos-space and folds in the Z-driven parallax.
+            // carry its spread and 3D offset instead (local rect units; the shader converts to
+            // pos-space and adds the Z parallax).
             if (renderMode == BoxRenderMode.InnerShadow)
             {
                 uv2 = new Vector4(packedFillColor, innerOffset.z, effectWidth, innerOffset.x);

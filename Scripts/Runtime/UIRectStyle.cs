@@ -36,8 +36,8 @@ namespace UIRect
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
             => Lerp(s1, s2, t, null);
 
-        // Overload that lerps shadows into a caller-supplied buffer. The animator passes a reusable
-        // buffer so per-frame animation allocates nothing; a null buffer allocates a fresh list.
+        // The animator passes a reusable shadowBuffer so per-frame lerps allocate nothing;
+        // a null buffer allocates a fresh list.
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadow> shadowBuffer)
         {
             return new UIRectStyle()
@@ -56,9 +56,8 @@ namespace UIRect
             };
         }
 
-        // Nullable LerpUnclamped: a null endpoint (an unset style member) propagates to null, matching
-        // the "unset stays unset" contract of every member above. Overloaded per type because C# can't
-        // interpolate a generic T.
+        // Nullable LerpUnclamped: a null (unset) endpoint propagates to null. Overloaded per type
+        // since C# can't lerp a generic T.
         private static Color? LerpN(Color? a, Color? b, float t)
             => (a == null || b == null) ? null : Color.LerpUnclamped(a.Value, b.Value, t);
         private static Vector4? LerpN(Vector4? a, Vector4? b, float t)
@@ -68,9 +67,8 @@ namespace UIRect
         private static float? LerpN(float? a, float? b, float t)
             => (a == null || b == null) ? null : Mathf.LerpUnclamped(a.Value, b.Value, t);
 
-        // Index-matched shadow interpolation. Entries beyond the shorter list fade their alpha (in
-        // when only in b, out when only in a), so animating between different shadow counts stays
-        // smooth. A null source or target propagates to a null result.
+        // Index-matched shadow lerp. Entries past the shorter list fade their alpha (in from b, out
+        // from a) so count changes animate smoothly. A null source or target gives a null result.
         private static List<UIRectShadow> LerpShadowsInto(List<UIRectShadow> a, List<UIRectShadow> b, float t,
             List<UIRectShadow> buffer)
         {
@@ -84,10 +82,9 @@ namespace UIRect
             for (int i = 0; i < shared; i++)
                 result.Add(UIRectShadow.Lerp(a[i], b[i], t));
 
-            // Extra source shadows fade out, then drop at t >= 1 so the finished list matches the target's count.
-            // The alpha fades use Mathf.Lerp (t clamped to [0,1]) so an overshoot ease curve — which
-            // legitimately drives eased t past [0,1] for the index-matched Lerps above — can't push a
-            // fading shadow's alpha brighter than its endpoint or negative.
+            // Extra source shadows fade out, then drop at t >= 1 to match the target count. Mathf.Lerp
+            // (not LerpUnclamped) clamps the fade so an overshoot curve can't push alpha past its
+            // endpoint or negative.
             if (t < 1f)
                 for (int i = shared; i < a.Count; i++)
                     result.Add(FadeAlpha(a[i], Mathf.Lerp(a[i].color.a, 0, t)));

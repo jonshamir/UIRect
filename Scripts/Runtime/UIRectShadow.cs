@@ -22,8 +22,7 @@ namespace UIRect
         [Min(0)] public float spread;
         public Vector3 offset;
 
-        // Matches the pre-list single-shadow field defaults. Struct field initializers aren't
-        // available on this C# level, so new entries (inspector adds, API callers) start from here.
+        // Struct field initializers aren't available on this C# version, so new entries start here.
         public static UIRectShadow Default => new UIRectShadow
         {
             color = new Color(0, 0, 0, 0.5f),

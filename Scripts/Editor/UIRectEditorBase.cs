@@ -200,9 +200,8 @@ namespace UIRect
             return 6 * step + 8;
         }
 
-        // Unity zero-fills the first element added to an empty list, which would be an invisible
-        // shadow (alpha 0, size 0). Start from the defaults instead; further adds keep Unity's
-        // duplicate-previous-element behavior, which is what list editing usually wants.
+        // Unity zero-fills the first element of an empty list — an invisible shadow (alpha 0, size 0).
+        // Seed it from the defaults instead; later adds keep Unity's duplicate-previous behavior.
         private static void OnAddShadow(ReorderableList list)
         {
             int index = list.serializedProperty.arraySize;

@@ -22,9 +22,8 @@ namespace UIRect
         private Action _onComplete;
         private Action _pendingComplete;
 
-        // Reused across ticks so the per-frame lerp allocates no shadow list. Safe because the
-        // returned style is consumed synchronously (copied into the host list by ApplyStyle)
-        // before the next Tick overwrites the buffer.
+        // Reused across ticks so per-frame lerps allocate no shadow list. Safe because the returned
+        // style is consumed synchronously (copied into the host list by ApplyStyle) before the next Tick.
         private readonly List<UIRectShadow> _shadowBuffer = new();
 
         public bool IsAnimating => _isAnimating;
