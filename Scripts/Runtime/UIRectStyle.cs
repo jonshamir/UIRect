@@ -8,9 +8,10 @@ namespace UIRect
         Middle, Outside, Inside
     }
 
+    // Packed into uv3.x per quad; values must stay in sync with the BOX_RENDER_MODE_* defines in UIRect.shader.
     public enum BoxRenderMode
     {
-        Fill, Shadow, Bevel, InnerShadow
+        Fill, Shadow, InnerShadow
     }
 
     public struct UIRectStyle

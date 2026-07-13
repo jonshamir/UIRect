@@ -106,8 +106,7 @@ Shader "UI/UIRect"
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
-            #define BOX_RENDER_MODE_BEVEL 2
-            #define BOX_RENDER_MODE_INNER_SHADOW 3
+            #define BOX_RENDER_MODE_INNER_SHADOW 2
 
             v2f vert(appdata_t v)
             {
