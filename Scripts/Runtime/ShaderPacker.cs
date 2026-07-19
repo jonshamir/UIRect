@@ -35,7 +35,7 @@ namespace UIRect
     	{
     		uint aInt = (UInt32)Mathf.FloorToInt(Mathf.Clamp01(a) * UInt16.MaxValue);
     		uint bInt = ((UInt32)Mathf.FloorToInt(Mathf.Clamp01(b) * UInt16.MaxValue)) << 16;
-    		return UInt32ToSingle(aInt | bInt);
+    		return BitConverter.Int32BitsToSingle((int)(aInt | bInt));
     	}
 
     	/// <summary>
