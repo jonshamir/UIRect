@@ -26,6 +26,7 @@ namespace UIRect
         private SerializedProperty _independentCorners;
         private SerializedProperty _radius;
         private SerializedProperty _translate;
+        private SerializedProperty _skew;
 
         private SerializedProperty _fillColor;
         private SerializedProperty _borderColor;
@@ -51,6 +52,7 @@ namespace UIRect
             _independentCorners = serializedObject.FindProperty("independentCorners");
             _radius = serializedObject.FindProperty("radius");
             _translate = serializedObject.FindProperty("translate");
+            _skew = serializedObject.FindProperty("skew");
 
             _fillColor = serializedObject.FindProperty("fillColor");
             _borderColor = serializedObject.FindProperty("borderColor");
@@ -111,6 +113,7 @@ namespace UIRect
             }
 
             EditorGUILayout.PropertyField(_translate);
+            EditorGUILayout.PropertyField(_skew);
 
             // Border
             GUILayout.Space(10);

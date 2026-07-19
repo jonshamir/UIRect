@@ -29,6 +29,9 @@ namespace UIRect
         public Vector4 radius = new(15, 15, 15, 15);
         public Vector3 translate = Vector3.zero;
 
+        // x: top corners right / bottom corners left; y: left corners up / right corners down
+        public Vector2 skew = Vector2.zero;
+
         // Border
         public Color borderColor = new(0, 0, 0, 1);
         public float borderWidth = 0;
@@ -55,6 +58,7 @@ namespace UIRect
         Color IUIRect.FillColor { get => fillColor; set => fillColor = value; }
         Vector4 IUIRect.Radius { get => radius; set => radius = value; }
         Vector3 IUIRect.Translate { get => translate; set => translate = value; }
+        Vector2 IUIRect.Skew { get => skew; set => skew = value; }
         Color IUIRect.BorderColor { get => borderColor; set => borderColor = value; }
         float IUIRect.BorderWidth { get => borderWidth; set => borderWidth = value; }
         BorderAlign IUIRect.BorderAlignment { get => borderAlign; set => borderAlign = value; }

@@ -19,6 +19,7 @@ namespace UIRect
         Color FillColor { get; set; }
         Vector4 Radius { get; set; }
         Vector3 Translate { get; set; }
+        Vector2 Skew { get; set; }
 
         Color BorderColor { get; set; }
         float BorderWidth { get; set; }

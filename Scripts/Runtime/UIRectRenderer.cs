@@ -17,6 +17,7 @@ namespace UIRect
         public Color fillColor;
         public Vector4 radius;     // top-left | top-right | bottom-right | bottom-left
         public Vector3 translate;  // offset applied to the rendered rect (does not affect layout)
+        public Vector2 skew;       // corner shear applied CPU-side to the quad vertices
         public Color borderColor;
         public float borderWidth;
         public BorderAlign borderAlign;
@@ -253,6 +254,7 @@ namespace UIRect
                 verts[i].position.Scale(offsetScale);
                 verts[i].position += posCenter;
                 verts[i].position += center;
+                verts[i].position += GetSkewOffset(i, p.skew);
 
                 verts[i].uv0 -= uvCenter4;
                 verts[i].uv0.Scale(offsetScale);
@@ -263,6 +265,18 @@ namespace UIRect
                 verts[i].uv3 = uv3; // (renderMode, bevelWidth, bevelStrength, 0)
             }
         }
+
+        // Shears the quad corners (UGUI order: 0=bottom-left, 1=top-left, 2=top-right,
+        // 3=bottom-right): skew.x moves top corners right / bottom corners left, skew.y moves left
+        // corners up / right corners down. Vertices past the quad (sliced/tiled sprites) are untouched.
+        private static Vector3 GetSkewOffset(int vertexIndex, Vector2 skew) => vertexIndex switch
+        {
+            0 => new Vector3(-skew.x, skew.y, 0),
+            1 => new Vector3(skew.x, skew.y, 0),
+            2 => new Vector3(skew.x, -skew.y, 0),
+            3 => new Vector3(-skew.x, -skew.y, 0),
+            _ => Vector3.zero
+        };
 
         private static void AddUIVertexQuad(VertexHelper vh, UIVertex[] quad)
         {

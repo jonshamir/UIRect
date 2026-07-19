@@ -19,6 +19,7 @@ namespace UIRect
             FillColor = h.FillColor,
             Radius = h.Radius,
             Translate = h.Translate,
+            Skew = h.Skew,
 
             BorderColor = h.BorderColor,
             BorderWidth = h.BorderWidth,
@@ -41,6 +42,7 @@ namespace UIRect
             h.FillColor = style.FillColor ?? h.FillColor;
             h.Radius = style.Radius ?? h.Radius;
             h.Translate = style.Translate ?? h.Translate;
+            h.Skew = style.Skew ?? h.Skew;
 
             h.BorderColor = style.BorderColor ?? h.BorderColor;
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
@@ -98,6 +100,7 @@ namespace UIRect
             fillColor = h.FillColor,
             radius = h.Radius,
             translate = h.Translate,
+            skew = h.Skew,
             borderColor = h.BorderColor,
             borderWidth = h.BorderWidth,
             borderAlign = h.BorderAlignment,

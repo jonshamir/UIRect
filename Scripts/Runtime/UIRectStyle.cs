@@ -19,6 +19,7 @@ namespace UIRect
         public Color? FillColor;
         public Vector4? Radius;
         public Vector3? Translate;
+        public Vector2? Skew;
 
         // Border
         public Color? BorderColor;
@@ -52,6 +53,7 @@ namespace UIRect
                 FillColor = LerpN(s1.FillColor, s2.FillColor, t),
                 Radius = LerpN(s1.Radius, s2.Radius, t),
                 Translate = LerpN(s1.Translate, s2.Translate, t),
+                Skew = LerpN(s1.Skew, s2.Skew, t),
 
                 BorderColor = LerpN(s1.BorderColor, s2.BorderColor, t),
                 BorderWidth = LerpN(s1.BorderWidth, s2.BorderWidth, t),
@@ -71,6 +73,8 @@ namespace UIRect
             => (a == null || b == null) ? null : Vector4.LerpUnclamped(a.Value, b.Value, t);
         private static Vector3? LerpN(Vector3? a, Vector3? b, float t)
             => (a == null || b == null) ? null : Vector3.LerpUnclamped(a.Value, b.Value, t);
+        private static Vector2? LerpN(Vector2? a, Vector2? b, float t)
+            => (a == null || b == null) ? null : Vector2.LerpUnclamped(a.Value, b.Value, t);
         private static float? LerpN(float? a, float? b, float t)
             => (a == null || b == null) ? null : Mathf.LerpUnclamped(a.Value, b.Value, t);
 

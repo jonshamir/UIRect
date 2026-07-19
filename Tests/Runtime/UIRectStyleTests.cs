@@ -89,6 +89,19 @@ namespace UIRect.Tests
         }
 
         [Test]
+        public void Lerp_Skew_InterpolatesAndNullPropagates()
+        {
+            var style1 = new UIRectStyle { Skew = Vector2.zero };
+            var style2 = new UIRectStyle { Skew = new Vector2(10, -20) };
+
+            var result = UIRectStyle.Lerp(style1, style2, 0.5f);
+            Assert.AreEqual(new Vector2(5, -10), result.Skew);
+
+            var nullResult = UIRectStyle.Lerp(style1, new UIRectStyle(), 0.5f);
+            Assert.IsNull(nullResult.Skew);
+        }
+
+        [Test]
         public void Lerp_Shadows_InterpolatesByIndex()
         {
             var style1 = new UIRectStyle
