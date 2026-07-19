@@ -106,7 +106,7 @@ Shader "UI/UIRect"
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
-            #define BOX_RENDER_MODE_BEVEL 2
+            #define BOX_RENDER_MODE_INNER_SHADOW 2
 
             v2f vert(appdata_t v)
             {
@@ -155,6 +155,42 @@ Shader "UI/UIRect"
                 float pixelWidth = fwidth(dist) * 1.1;
 
                 float outerDist = 0;
+
+                // Inner (inset) shadow: painted on top of the fill, clipped to the shape, dark near
+                // the inner edge and fading toward the center. Uses the same blurred-box coverage as
+                // the drop shadow, inverted. Returns early so the border/bevel paths never run for it.
+                if (boxRenderMode == BOX_RENDER_MODE_INNER_SHADOW)
+                {
+                    float spread = IN.uv3.z;
+
+                    // Offset packed in local (rect) units: xy = (uv2.w, uv3.w), z (depth) = uv2.y.
+                    float2 offsetXY = float2(IN.uv2.w, IN.uv3.w);
+                    float offsetZ = IN.uv2.y;
+
+                    // Reuse the bevel path's view direction so a depth (Z) offset parallaxes when the
+                    // quad is viewed at an angle; worldPosition is already interpolated for lighting.
+                    float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
+                    viewDir = UnityWorldToObjectDir(viewDir);
+                    // Object-space viewDir.z is usually negative (local +Z faces into the screen).
+                    // Push it off zero on its own side; a plain max() would flip the sign and blow up.
+                    float zSafe = viewDir.z >= 0.0 ? max(viewDir.z, 1e-4) : min(viewDir.z, -1e-4);
+                    float2 parallax = -viewDir.xy / zSafe * offsetZ;
+
+                    // Local units → pos-space: pos = (uv*2-1)*size spans twice the local extent.
+                    float2 offset = (offsetXY + parallax) * 2.0;
+
+                    float blur = max(effectWidth, pixelWidth / 3);
+                    // Same two-sided clamp as the drop shadow so an over-large radius
+                    // can't corrupt the slice geometry; max(0, ...) also guards the
+                    // spread > size case the drop path never hits.
+                    float2 innerHalfSize = IN.size - spread;
+                    float4 innerRadius = clamp(IN.radii * 2 - spread, 0.0, max(0.0, min(innerHalfSize.x, innerHalfSize.y)));
+                    float coverage = blurredRoundedBoxCoverage(pos - offset, innerHalfSize, blur, innerRadius);
+                    float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
+
+                    color.a *= (1 - coverage) * insideMask;
+                    return color;
+                }
 
                 // Add border
                 if (effectWidth > 0 && boxRenderMode == BOX_RENDER_MODE_FILL)
@@ -229,29 +265,7 @@ Shader "UI/UIRect"
                     // either corrupts the slice geometry, so clamp per-fragment
                     float4 radius = clamp(IN.radii * 2 + antialiasingOffset.xxxx, 0.0, min(size.x, size.y));
 
-                    float shadowDist = sdgRoundedBox(pos, size, radius).x;
-
-                    float mask;
-                    [branch]
-                    if (abs(shadowDist) > 3.0 * blur)
-                    {
-                        // Beyond +-3 sigma the gaussian has no support: skip the integral
-                        mask = shadowDist > 0.0 ? 0.0 : 1.0;
-                    }
-                    else
-                    {
-                        // Blurring along the SDF is near-exact (and loop-free) while
-                        // the blur is small relative to this quadrant's corner radius;
-                        // the sliced gaussian integral takes over for wide blurs
-                        mask = 0.5 - 0.5 * erf(shadowDist * (SQRT_HALF / blur));
-
-                        float2 sideRadii = (pos.x > 0.0) ? radius.yz : radius.xw;
-                        float quadrantRadius = (pos.y > 0.0) ? sideRadii.x : sideRadii.y;
-                        float t = smoothstep(0.0625, 0.125, blur / max(quadrantRadius, 0.0001));
-                        [branch]
-                        if (t > 0.0)
-                            mask = lerp(mask, roundedBoxShadow(pos, size, blur, radius), t);
-                    }
+                    float mask = blurredRoundedBoxCoverage(pos, size, blur, radius);
 
                     color.a *= mask;
                     return color;

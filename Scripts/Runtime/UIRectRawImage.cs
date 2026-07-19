@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -33,12 +34,8 @@ namespace UIRect
         public float borderWidth = 0;
         public BorderAlign borderAlign = BorderAlign.Inside;
 
-        // Shadow
-        public bool hasShadow = false;
-        public Color shadowColor = new(0, 0, 0, 0.5f);
-        public float shadowSize = 10;
-        public float shadowSpread = 0;
-        public Vector3 shadowOffset = new Vector2(0, -5);
+        // Shadows (outer and inner mixed; index 0 is topmost)
+        public List<UIRectShadow> shadows = new();
 
         // Bevel
         public float bevelWidth = 0;
@@ -61,11 +58,7 @@ namespace UIRect
         Color IUIRect.BorderColor { get => borderColor; set => borderColor = value; }
         float IUIRect.BorderWidth { get => borderWidth; set => borderWidth = value; }
         BorderAlign IUIRect.BorderAlignment { get => borderAlign; set => borderAlign = value; }
-        bool IUIRect.HasShadow { get => hasShadow; set => hasShadow = value; }
-        Color IUIRect.ShadowColor { get => shadowColor; set => shadowColor = value; }
-        float IUIRect.ShadowSize { get => shadowSize; set => shadowSize = value; }
-        float IUIRect.ShadowSpread { get => shadowSpread; set => shadowSpread = value; }
-        Vector3 IUIRect.ShadowOffset { get => shadowOffset; set => shadowOffset = value; }
+        List<UIRectShadow> IUIRect.Shadows { get => shadows; set => shadows = value; }
         float IUIRect.BevelWidth { get => bevelWidth; set => bevelWidth = value; }
         float IUIRect.BevelStrength { get => bevelStrength; set => bevelStrength = value; }
 

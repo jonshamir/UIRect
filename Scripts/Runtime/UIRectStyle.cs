@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace UIRect
@@ -7,14 +8,15 @@ namespace UIRect
         Middle, Outside, Inside
     }
 
+    // Packed into uv3.x per quad; values must stay in sync with the BOX_RENDER_MODE_* defines in UIRect.shader.
     public enum BoxRenderMode
     {
-        Fill, Shadow, Bevel
+        Fill, Shadow, InnerShadow
     }
 
     public struct UIRectStyle
     {
-        public Color? BackgroundColor;
+        public Color? FillColor;
         public Vector4? Radius;
         public Vector3? Translate;
 
@@ -23,50 +25,92 @@ namespace UIRect
         public float? BorderWidth;
         public BorderAlign? BorderAlign;
 
-        // Shadow
-        public bool? HasShadow;
-        public Color? ShadowColor;
-        public float? ShadowSize;
-        public float? ShadowSpread;
-        public Vector3? ShadowOffset;
+        // Shadows (outer and inner mixed; index 0 is topmost). Three states: null = leave the
+        // UIRect's shadows alone (like the other members); NoShadows = remove every shadow; a
+        // non-empty list = merge per index. Entries are UIRectShadowStyle so individual props can
+        // be left unset and inherited from the UIRect's current shadow at that index.
+        public List<UIRectShadowStyle> Shadows;
+
+        // Assign to Shadows to remove every shadow, like CSS `box-shadow: none`. A fresh empty list
+        // each access so callers can't mutate a shared instance. (An empty list has always meant
+        // "clear"; this just names the intent.)
+        public static List<UIRectShadowStyle> NoShadows => new();
 
         // Bevel
         public float? BevelWidth;
         public float? BevelStrength;
 
         public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t)
+            => Lerp(s1, s2, t, null);
+
+        // The animator passes a reusable shadowBuffer so per-frame lerps allocate nothing;
+        // a null buffer allocates a fresh list.
+        public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadowStyle> shadowBuffer)
         {
             return new UIRectStyle()
             {
-                BackgroundColor = (s1.BackgroundColor == null || s2.BackgroundColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.BackgroundColor, (Color)s2.BackgroundColor, t),
-                Radius = (s1.Radius == null || s2.Radius == null) ? null :
-                    Vector4.LerpUnclamped((Vector4)s1.Radius, (Vector4)s2.Radius, t),
-                Translate = (s1.Translate == null || s2.Translate == null) ? null :
-                    Vector3.LerpUnclamped((Vector3)s1.Translate, (Vector3)s2.Translate, t),
+                FillColor = LerpN(s1.FillColor, s2.FillColor, t),
+                Radius = LerpN(s1.Radius, s2.Radius, t),
+                Translate = LerpN(s1.Translate, s2.Translate, t),
 
+                BorderColor = LerpN(s1.BorderColor, s2.BorderColor, t),
+                BorderWidth = LerpN(s1.BorderWidth, s2.BorderWidth, t),
 
-                BorderColor = (s1.BorderColor == null || s2.BorderColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.BorderColor, (Color)s2.BorderColor, t),
-                BorderWidth = (s1.BorderWidth == null || s2.BorderWidth == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BorderWidth, (float)s2.BorderWidth, t),
+                Shadows = LerpShadowsInto(s1.Shadows, s2.Shadows, t, shadowBuffer),
 
-                HasShadow = s2.HasShadow ?? s1.HasShadow,  // Use target value (no lerp for bool)
-                ShadowColor = (s1.ShadowColor == null || s2.ShadowColor == null) ? null :
-                    Color.LerpUnclamped((Color)s1.ShadowColor, (Color)s2.ShadowColor, t),
-                ShadowSize = (s1.ShadowSize == null || s2.ShadowSize == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.ShadowSize, (float)s2.ShadowSize, t),
-                ShadowSpread = (s1.ShadowSpread == null || s2.ShadowSpread == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.ShadowSpread, (float)s2.ShadowSpread, t),
-                ShadowOffset = (s1.ShadowOffset == null || s2.ShadowOffset == null) ? null :
-                    Vector3.LerpUnclamped((Vector3)s1.ShadowOffset, (Vector3)s2.ShadowOffset, t),
-
-                BevelWidth = (s1.BevelWidth == null || s2.BevelWidth == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BevelWidth, (float)s2.BevelWidth, t),
-                BevelStrength = (s1.BevelStrength == null || s2.BevelStrength == null) ? null :
-                    Mathf.LerpUnclamped((float)s1.BevelStrength, (float)s2.BevelStrength, t),
-
+                BevelWidth = LerpN(s1.BevelWidth, s2.BevelWidth, t),
+                BevelStrength = LerpN(s1.BevelStrength, s2.BevelStrength, t),
             };
+        }
+
+        // Nullable LerpUnclamped: a null (unset) endpoint propagates to null. Overloaded per type
+        // since C# can't lerp a generic T.
+        private static Color? LerpN(Color? a, Color? b, float t)
+            => (a == null || b == null) ? null : Color.LerpUnclamped(a.Value, b.Value, t);
+        private static Vector4? LerpN(Vector4? a, Vector4? b, float t)
+            => (a == null || b == null) ? null : Vector4.LerpUnclamped(a.Value, b.Value, t);
+        private static Vector3? LerpN(Vector3? a, Vector3? b, float t)
+            => (a == null || b == null) ? null : Vector3.LerpUnclamped(a.Value, b.Value, t);
+        private static float? LerpN(float? a, float? b, float t)
+            => (a == null || b == null) ? null : Mathf.LerpUnclamped(a.Value, b.Value, t);
+
+        // Index-matched shadow lerp. Entries past the shorter list fade their alpha (in from b, out
+        // from a) so count changes animate smoothly. A null source or target gives a null result.
+        private static List<UIRectShadowStyle> LerpShadowsInto(List<UIRectShadowStyle> a, List<UIRectShadowStyle> b,
+            float t, List<UIRectShadowStyle> buffer)
+        {
+            if (a == null || b == null)
+                return null;
+
+            int shared = Mathf.Min(a.Count, b.Count);
+            var result = buffer ?? new List<UIRectShadowStyle>(Mathf.Max(a.Count, b.Count));
+            result.Clear();
+
+            for (int i = 0; i < shared; i++)
+                result.Add(UIRectShadowStyle.Lerp(a[i], b[i], t));
+
+            // Extra source shadows fade out, then drop at t >= 1 to match the target count. Mathf.Lerp
+            // (not LerpUnclamped) clamps the fade so an overshoot curve can't push alpha past its
+            // endpoint or negative.
+            if (t < 1f)
+                for (int i = shared; i < a.Count; i++)
+                    result.Add(FadeAlpha(a[i], Mathf.Lerp(BaseAlpha(a[i]), 0, t)));
+            for (int i = shared; i < b.Count; i++) // extra target shadows fade in
+                result.Add(FadeAlpha(b[i], Mathf.Lerp(0, BaseAlpha(b[i]), t)));
+
+            return result;
+        }
+
+        // A brand-new target shadow may leave color unset (only size/offset authored); fall back to the
+        // Default color so a count-change fade still has an alpha to ramp.
+        private static float BaseAlpha(in UIRectShadowStyle s) => (s.color ?? UIRectShadow.Default.color).a;
+
+        private static UIRectShadowStyle FadeAlpha(UIRectShadowStyle s, float alpha)
+        {
+            Color c = s.color ?? UIRectShadow.Default.color;
+            c.a = alpha;
+            s.color = c;
+            return s;
         }
     }
 }

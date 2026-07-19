@@ -67,18 +67,26 @@ Use `UIRectStyle` to define and apply styles:
 ```csharp
 UIRectStyle cardStyle = new UIRectStyle
 {
-    BackgroundColor = Color.white,
+    FillColor = Color.white,
     Radius = new Vector4(15, 15, 15, 15),
     BorderColor = new Color(0.8f, 0.8f, 0.8f),
     BorderWidth = 2,
-    HasShadow = true,
-    ShadowColor = new Color(0, 0, 0, 0.3f),
-    ShadowSize = 10,
-    ShadowOffset = new Vector3(0, -5, 0)
+    Shadows = new()
+    {
+        new()
+        {
+            color = new(0, 0, 0, 0.3f),
+            size = 10,
+            offset = new(0, -5, 0)
+        }
+    }
 };
 
 uiRect.Style = cardStyle;
 ```
+
+An element can have any number of shadows, outer or inner (`isInner = true`, like CSS `box-shadow: inset`).
+List index 0 is drawn topmost; outer shadows always render behind the fill and inner shadows on top of it.
 
 Any style attributes that are not included (or `null`) will not be overwritten, inspired by CSS.
 All properties in `UIRectStyle` are nullable (`Color?`, `float?`, etc.), allowing partial style updates:
@@ -103,14 +111,32 @@ UIRect includes a built-in animation system that smoothly interpolates between s
 ```csharp
 UIRectStyle hoverStyle = new UIRectStyle
 {
-    BackgroundColor = Color.cyan,
+    FillColor = Color.cyan,
     BorderWidth = 8,
-    ShadowSize = 20
+    Shadows = new()
+    {
+        new()
+        {
+            color = new(0, 0, 0, 0.3f),
+            size = 20,
+            offset = new(0, -5, 0)
+        }
+    }
 };
 
 // Animate over 0.5 seconds with default easing
 uiRect.AnimateTo(hoverStyle, 0.5f);
 ```
+
+Shadows animate index-by-index: give the start and end styles a `Shadows` list of the same
+length and matching entries interpolate. Extra entries fade in or out as the count changes.
+
+Individual shadow props are optional, just like the top-level style members: any prop you leave
+unset (e.g. `new() { size = 20 }`) inherits the value the UIRect's shadow at that index already
+has, so you only specify what changes. A brand-new shadow index falls back to the built-in defaults.
+
+To remove every shadow, assign `Shadows = UIRectStyle.NoShadows` (like CSS `box-shadow: none`);
+leaving `Shadows` unset leaves the existing shadows untouched.
 
 ### Animation with Callback
 
@@ -135,18 +161,28 @@ public class UIRectButton : MonoBehaviour
     {
         normalStyle = new UIRectStyle
         {
-            BackgroundColor = Color.white,
+            FillColor = Color.white,
             BorderWidth = 2,
             BorderColor = Color.gray,
             Radius = new Vector4(10, 10, 10, 10),
-            ShadowSize = 5
+            Shadows = new()
+            {
+                new()
+                {
+                    color = new(0, 0, 0, 0.3f),
+                    size = 5,
+                    offset = new(0, -2, 0)
+                }
+            }
         };
 
         hoverStyle = new UIRectStyle
         {
-            BackgroundColor = new Color(0.9f, 0.9f, 1f),
+            FillColor = new Color(0.9f, 0.9f, 1f),
             BorderColor = Color.blue,
-            ShadowSize = 15
+            // Only grow the shadow; color and offset are left unset, so they inherit
+            // whatever the shadow currently has (here, normalStyle's values).
+            Shadows = new() { new() { size = 15 } }
         };
 
         uiRect.Style = normalStyle;

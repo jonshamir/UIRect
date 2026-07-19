@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace UIRect
 {
     /// <summary>
@@ -11,7 +13,7 @@ namespace UIRect
         /// <summary>Builds a fully-populated <see cref="UIRectStyle"/> from the host's current values.</summary>
         public static UIRectStyle GetStyle(this IUIRect h) => new UIRectStyle
         {
-            BackgroundColor = h.FillColor,
+            FillColor = h.FillColor,
             Radius = h.Radius,
             Translate = h.Translate,
 
@@ -19,11 +21,9 @@ namespace UIRect
             BorderWidth = h.BorderWidth,
             BorderAlign = h.BorderAlignment,
 
-            HasShadow = h.HasShadow,
-            ShadowColor = h.ShadowColor,
-            ShadowSize = h.ShadowSize,
-            ShadowSpread = h.ShadowSpread,
-            ShadowOffset = h.ShadowOffset,
+            // Snapshot the live shadows as fully-populated style entries (no aliasing of the live
+            // list). null round-trips as null (the renderer treats null as "no shadows").
+            Shadows = ToStyleShadows(h.Shadows),
 
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
@@ -35,7 +35,7 @@ namespace UIRect
         /// </summary>
         public static void ApplyStyle(this IUIRect h, UIRectStyle style)
         {
-            h.FillColor = style.BackgroundColor ?? h.FillColor;
+            h.FillColor = style.FillColor ?? h.FillColor;
             h.Radius = style.Radius ?? h.Radius;
             h.Translate = style.Translate ?? h.Translate;
 
@@ -43,14 +43,48 @@ namespace UIRect
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
             h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
 
-            h.HasShadow = style.HasShadow ?? h.HasShadow;
-            h.ShadowColor = style.ShadowColor ?? h.ShadowColor;
-            h.ShadowSize = style.ShadowSize ?? h.ShadowSize;
-            h.ShadowSpread = style.ShadowSpread ?? h.ShadowSpread;
-            h.ShadowOffset = style.ShadowOffset ?? h.ShadowOffset;
+            ApplyShadows(h, style.Shadows);
 
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;
             h.BevelStrength = style.BevelStrength ?? h.BevelStrength;
+        }
+
+        // Fully-populated style entries snapshotting the live shadows (structs, so the copies never
+        // alias the source list). Returns null for a null list so it round-trips through the style.
+        private static List<UIRectShadowStyle> ToStyleShadows(List<UIRectShadow> shadows)
+        {
+            if (shadows == null)
+                return null;
+
+            var list = new List<UIRectShadowStyle>(shadows.Count);
+            for (int i = 0; i < shadows.Count; i++)
+                list.Add(UIRectShadowStyle.From(shadows[i]));
+            return list;
+        }
+
+        // Merges the authored shadows onto the host's concrete list in place. Each entry resolves its
+        // unset props against the current shadow at that index (UIRectShadow.Default for a new index),
+        // so dropped props inherit what the UIRect already shows. The host list length follows the
+        // authored list: extra current shadows past its end are dropped. A null list leaves shadows
+        // untouched (unset member).
+        private static void ApplyShadows(IUIRect h, List<UIRectShadowStyle> shadows)
+        {
+            if (shadows == null)
+                return;
+
+            var host = h.Shadows ??= new List<UIRectShadow>(shadows.Count);
+            for (int i = 0; i < shadows.Count; i++)
+            {
+                UIRectShadow baseline = i < host.Count ? host[i] : UIRectShadow.Default;
+                UIRectShadow resolved = shadows[i].Resolve(baseline);
+                if (i < host.Count)
+                    host[i] = resolved;
+                else
+                    host.Add(resolved);
+            }
+
+            if (host.Count > shadows.Count)
+                host.RemoveRange(shadows.Count, host.Count - shadows.Count);
         }
 
         /// <summary>Snapshots the host's style into the DTO <see cref="UIRectRenderer"/> consumes.</summary>
@@ -64,11 +98,7 @@ namespace UIRect
             borderColor = h.BorderColor,
             borderWidth = h.BorderWidth,
             borderAlign = h.BorderAlignment,
-            hasShadow = h.HasShadow,
-            shadowColor = h.ShadowColor,
-            shadowSize = h.ShadowSize,
-            shadowSpread = h.ShadowSpread,
-            shadowOffset = h.ShadowOffset,
+            shadows = h.Shadows, // live reference is fine: the renderer only reads, within this frame
             bevelWidth = h.BevelWidth,
             bevelStrength = h.BevelStrength,
         };
