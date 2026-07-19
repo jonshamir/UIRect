@@ -87,14 +87,15 @@ namespace UIRect
         /// Animates the style to the target style over the specified duration.
         /// </summary>
         public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, Action onComplete = null)
-            => _animator.AnimateTo(Style, style, duration, easeCurve, onComplete);
+        {
+            _animator.AnimateTo(Style, style, duration, easeCurve, onComplete);
+            UIRectAnimationTicker.Register(this, _animator); // Ticks until completion; no per-frame Update
+        }
 
         /// <summary>
         /// Stops the current animation if one is running.
         /// </summary>
         public void StopAnimation() => _animator.Stop();
-
-        void Update() => this.UpdateAnimation(_animator);
 
         #endregion
     }

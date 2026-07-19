@@ -31,6 +31,17 @@ namespace UIRect
     	}
 
     	/// <summary>
+    	/// <see cref="Pack2NormalizedFloats"/> without the throwing range checks (clamps instead),
+    	/// for hot paths with pre-validated inputs.
+    	/// </summary>
+    	internal static float Pack2NormalizedFloatsUnchecked(float a, float b)
+    	{
+    		uint aInt = (UInt32)Mathf.FloorToInt(Mathf.Clamp01(a) * UInt16.MaxValue);
+    		uint bInt = ((UInt32)Mathf.FloorToInt(Mathf.Clamp01(b) * UInt16.MaxValue)) << 16;
+    		return UInt32ToSingle(aInt | bInt);
+    	}
+
+    	/// <summary>
     	/// Unpacks a floats into 2 values.
     	/// </summary>
     	/// <param name="packed">Packed float.</param>

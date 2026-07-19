@@ -51,7 +51,7 @@ Shader "UI/UIRect"
         CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            #pragma target 2.0
+            #pragma target 3.0
  
             #include "UnityCG.cginc"
             #include "UnityUI.cginc"
@@ -92,7 +92,7 @@ Shader "UI/UIRect"
                 float4 radii : TEXCOORD2;
                 float4 uv2 : TEXCOORD3;
                 float4 uv3 : TEXCOORD5;
-                float4 worldPosition : TEXCOORD4;
+                float3 objViewDir : TEXCOORD4;  // Object-space vertex→camera (unnormalized), for parallax/bevel
                 float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
 
                 UNITY_VERTEX_OUTPUT_STEREO
@@ -113,7 +113,8 @@ Shader "UI/UIRect"
                 v2f OUT;
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
-                OUT.worldPosition = mul(unity_ObjectToWorld, v.vertex);  // For bevel lighting
+                // View dir for the parallax/bevel paths (interpolates exactly; normalized per-fragment)
+                OUT.objViewDir = ObjSpaceViewDir(v.vertex);
                 OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
                 
@@ -123,7 +124,7 @@ Shader "UI/UIRect"
                 // Unpack data here to prevent per-fragment calculations
                 float2 top = unpack2floats(v.uv1.z) * v.uv1.x; // Unpack radii and un-normalize (multiply by width)
 				float2 bottom = unpack2floats(v.uv1.w) * v.uv1.x;
-                OUT.radii = float4(top, bottom);
+                OUT.radii = float4(top, bottom) * 2;  // Pre-doubled to pos-space (pos spans 2× local units)
                 OUT.color = v.color * _Color;
                 OUT.uv2 = v.uv2;
                 OUT.uv3 = v.uv3;
@@ -135,9 +136,18 @@ Shader "UI/UIRect"
  
             half4 frag(v2f IN) : SV_Target
             {
-                half4 texColor = pow(tex2D(_MainTex, IN.uv) + _TextureSampleAdd, INV_GAMMA);
-                half4 color = texColor * IN.color * IN.fillColor;
-                
+                int boxRenderMode = IN.uv3.x;
+
+                // Shadows are pure shadow-color × tint (CSS semantics), so only the fill path pays
+                // the texture fetch + gamma decode. Gradients are taken before the branch —
+                // implicit-LOD sampling is not allowed under divergent flow control.
+                float2 uvDdx = ddx(IN.uv);
+                float2 uvDdy = ddy(IN.uv);
+                half4 color = IN.color * IN.fillColor;
+                [branch]
+                if (boxRenderMode == BOX_RENDER_MODE_FILL)
+                    color *= pow(tex2Dgrad(_MainTex, IN.uv, uvDdx, uvDdy) + _TextureSampleAdd, INV_GAMMA);
+
                 #ifdef UNITY_UI_CLIP_RECT
                 color.a *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
                 #endif
@@ -146,11 +156,10 @@ Shader "UI/UIRect"
                 clip (color.a - 0.001);
                 #endif
 
-                int boxRenderMode = IN.uv3.x;
                 float effectWidth = IN.uv2.z;
 
                 float2 pos = (IN.uv * 2 - 1) * IN.size; // Map position to size of box
-                float3 sdg = sdgRoundedBox(pos, IN.size, IN.radii * 2);
+                float3 sdg = sdgRoundedBox(pos, IN.size, IN.radii);
                 float dist = sdg.x;
                 float pixelWidth = fwidth(dist) * 1.1;
 
@@ -167,10 +176,9 @@ Shader "UI/UIRect"
                     float2 offsetXY = float2(IN.uv2.w, IN.uv3.w);
                     float offsetZ = IN.uv2.y;
 
-                    // Reuse the bevel path's view direction so a depth (Z) offset parallaxes when the
-                    // quad is viewed at an angle; worldPosition is already interpolated for lighting.
-                    float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
-                    viewDir = UnityWorldToObjectDir(viewDir);
+                    // View direction so a depth (Z) offset parallaxes when the quad is viewed at an
+                    // angle; normalized so the zSafe epsilon stays meaningful.
+                    float3 viewDir = normalize(IN.objViewDir);
                     // Object-space viewDir.z is usually negative (local +Z faces into the screen).
                     // Push it off zero on its own side; a plain max() would flip the sign and blow up.
                     float zSafe = viewDir.z >= 0.0 ? max(viewDir.z, 1e-4) : min(viewDir.z, -1e-4);
@@ -184,7 +192,7 @@ Shader "UI/UIRect"
                     // can't corrupt the slice geometry; max(0, ...) also guards the
                     // spread > size case the drop path never hits.
                     float2 innerHalfSize = IN.size - spread;
-                    float4 innerRadius = clamp(IN.radii * 2 - spread, 0.0, max(0.0, min(innerHalfSize.x, innerHalfSize.y)));
+                    float4 innerRadius = clamp(IN.radii - spread, 0.0, max(0.0, min(innerHalfSize.x, innerHalfSize.y)));
                     float coverage = blurredRoundedBoxCoverage(pos - offset, innerHalfSize, blur, innerRadius);
                     float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
 
@@ -217,15 +225,14 @@ Shader "UI/UIRect"
                 if (bevelWidth > 0 && boxRenderMode != BOX_RENDER_MODE_SHADOW)
                 {
                     float3 neutralNormal = float3(0, 0, 1); // The base surface normal of the quad
-                    float3 viewDir = normalize(_WorldSpaceCameraPos - IN.worldPosition.xyz);
-                    viewDir = UnityWorldToObjectDir(viewDir);
+                    float3 viewDir = normalize(IN.objViewDir);
                     float bevelStrength = IN.uv3.z;
 
                     // parallaxMapping
                     float2 newUV = parallaxMapping(IN.uv, viewDir, 0.0005 * bevelWidth);
                     // float2 newUV = IN.uv;
                     float2 newPos = (newUV * 2 - 1) * IN.size;
-                    sdg = sdgRoundedBox(newPos, IN.size, IN.radii * 2);
+                    sdg = sdgRoundedBox(newPos, IN.size, IN.radii);
                     float bevelDist = smoothstep(outerDist - bevelWidth, outerDist, sdg.x);
                     // end parallaxMapping
                     
@@ -263,7 +270,7 @@ Shader "UI/UIRect"
                     float2 size = IN.size + antialiasingOffset.xx;
                     // Spread can push radii negative or past the half-size;
                     // either corrupts the slice geometry, so clamp per-fragment
-                    float4 radius = clamp(IN.radii * 2 + antialiasingOffset.xxxx, 0.0, min(size.x, size.y));
+                    float4 radius = clamp(IN.radii + antialiasingOffset.xxxx, 0.0, min(size.x, size.y));
 
                     float mask = blurredRoundedBoxCoverage(pos, size, blur, radius);
 

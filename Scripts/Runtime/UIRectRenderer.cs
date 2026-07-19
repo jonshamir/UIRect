@@ -45,21 +45,21 @@ namespace UIRect
 
         private static Shader _shader;
 
-        // Materials keyed by their enabled local-keyword set, so future style keywords
-        // (e.g. a "_USE_GRADIENT" variant) slot in without adding more hard-coded fields.
-        private static readonly Dictionary<string, Material> _materials = new();
+        // Materials indexed by their enabled local-keyword bits (future keywords grow the array).
+        // Hit on every defaultMaterial query, hence a plain array rather than a dictionary.
+        private static readonly Material[] _materials = new Material[2];
 
         public static Material GetMaterial(bool useBevel)
         {
-            _shader ??= Shader.Find(SHADER_NAME);
-
-            string key = useBevel ? KEYWORD_BEVELS : string.Empty;
-            if (_materials.TryGetValue(key, out var material) && material != null)
+            int index = useBevel ? 1 : 0;
+            Material material = _materials[index];
+            if (material != null)
                 return material;
 
+            _shader ??= Shader.Find(SHADER_NAME);
             material = new Material(_shader);
             material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
-            _materials[key] = material;
+            _materials[index] = material;
             return material;
         }
 
@@ -68,16 +68,18 @@ namespace UIRect
         // below). The shader is borrowed from Shader.Find, so it's only unreferenced, never destroyed.
         private static void ReleaseMaterials()
         {
-            foreach (var material in _materials.Values)
+            for (int i = 0; i < _materials.Length; i++)
             {
-                if (material == null)
-                    continue;
-                if (Application.isPlaying)
-                    UnityEngine.Object.Destroy(material);
-                else
-                    UnityEngine.Object.DestroyImmediate(material);
+                var material = _materials[i];
+                if (material != null)
+                {
+                    if (Application.isPlaying)
+                        UnityEngine.Object.Destroy(material);
+                    else
+                        UnityEngine.Object.DestroyImmediate(material);
+                }
+                _materials[i] = null;
             }
-            _materials.Clear();
             _shader = null;
         }
 
@@ -115,7 +117,9 @@ namespace UIRect
 
             SnapshotBaseVertices(vh, baseVertCount, out Vector2 uvCenter, out Vector3 posCenter);
 
-            BuildQuad(ref _mainVertices, _baseVertices, baseVertCount, uvCenter, posCenter, p.translate, p,
+            var inv = new QuadInvariants(p);
+
+            BuildQuad(ref _mainVertices, _baseVertices, baseVertCount, uvCenter, posCenter, p.translate, p, inv,
                 p.fillColor, p.borderWidth * 2, BoxRenderMode.Fill);
 
             vh.Clear();
@@ -133,7 +137,7 @@ namespace UIRect
                 if (s.isInner || !s.IsVisible)
                     continue;
                 BuildQuad(ref _scratchVertices, _baseVertices, baseVertCount, uvCenter, posCenter,
-                    p.translate + s.offset, p, s.color, s.size, BoxRenderMode.Shadow, s.spread);
+                    p.translate + s.offset, p, inv, s.color, s.size, BoxRenderMode.Shadow, s.spread);
                 AddUIVertexQuad(vh, _scratchVertices);
             }
 
@@ -147,7 +151,7 @@ namespace UIRect
                 if (!s.isInner || !s.IsVisible)
                     continue;
                 BuildQuad(ref _scratchVertices, _baseVertices, baseVertCount, uvCenter, posCenter,
-                    p.translate, p, s.color, s.size, BoxRenderMode.InnerShadow, s.spread, s.offset);
+                    p.translate, p, inv, s.color, s.size, BoxRenderMode.InnerShadow, s.spread, s.offset);
                 AddUIVertexQuad(vh, _scratchVertices);
             }
         }
@@ -175,6 +179,21 @@ namespace UIRect
             posCenter = posSum / count;
         }
 
+        // Per-Populate constants shared by every quad (fill + all shadows), packed once instead of per quad.
+        private readonly struct QuadInvariants
+        {
+            public readonly Vector2 packedRadii;
+            public readonly float packedBorderColor;
+            public readonly float borderAlignOffset;
+
+            public QuadInvariants(in UIRectRenderParams p)
+            {
+                packedRadii = PackRadii(p.radius, p.size);
+                packedBorderColor = ShaderPacker.PackColor(p.borderColor);
+                borderAlignOffset = BorderAlignOffset(p.borderAlign);
+            }
+        }
+
         private static void BuildQuad(
             ref UIVertex[] verts,
             UIVertex[] baseVerts,
@@ -183,6 +202,7 @@ namespace UIRect
             Vector3 posCenter,
             Vector3 center,
             in UIRectRenderParams p,
+            in QuadInvariants inv,
             Color fill,
             float effectWidth,
             BoxRenderMode renderMode,
@@ -190,14 +210,12 @@ namespace UIRect
             Vector3 innerOffset = default)
         {
             Vector2 size = p.size;
-            Vector2 packedRadii = PackRadii(p.radius, size);
 
             float packedFillColor = ShaderPacker.PackColor(fill);
-            float packedBorderColor = ShaderPacker.PackColor(p.borderColor);
-            float borderAlignOffset = BorderAlignOffset(p.borderAlign);
+            float borderAlignOffset = inv.borderAlignOffset;
 
-            Vector4 uv1 = new Vector4(size.x, size.y, packedRadii.x, packedRadii.y);
-            Vector4 uv2 = new Vector4(packedFillColor, packedBorderColor, effectWidth, borderAlignOffset);
+            Vector4 uv1 = new Vector4(size.x, size.y, inv.packedRadii.x, inv.packedRadii.y);
+            Vector4 uv2 = new Vector4(packedFillColor, inv.packedBorderColor, effectWidth, borderAlignOffset);
             // uv3.z is read as bevelStrength by the fill/bevel path, as shadowSpread by the shadow
             // path — so shadow quads carry spread here instead.
             float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? spread : p.bevelStrength;
@@ -214,7 +232,9 @@ namespace UIRect
 
             float quadSizeOffset = borderAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
-                quadSizeOffset = effectWidth * 3f + spread; // ~3 sigma for the Gaussian blur
+                // Exact ±3σ support of the blur — the shader early-outs at |dist| > 3σ
+                // (BlurredRect.cginc), so shrinking this clips the shadow.
+                quadSizeOffset = effectWidth * 3f + spread;
             else if (renderMode == BoxRenderMode.InnerShadow)
                 quadSizeOffset = 0; // inner shadow lives inside the fill footprint
 
@@ -261,13 +281,16 @@ namespace UIRect
         // top-left | top-right | bottom-right | bottom-left
         private static Vector2 PackRadii(Vector4 radii, Vector2 size)
         {
+            if (size.x <= 0f)
+                return Vector2.zero; // degenerate rect; dividing would produce NaN
+
             float maxRadius = Mathf.Min(size.x, size.y) / 2;
             Vector4 clamped = Vector4.Min(Vector4.Max(radii, Vector4.zero), Vector4.one * maxRadius);
             // Normalize to [0,1], assuming radii are at most half the short dimension
             Vector4 normalized = clamped / size.x;
 
-            float topRadii = ShaderPacker.Pack2NormalizedFloats(normalized.x, normalized.y);
-            float bottomRadii = ShaderPacker.Pack2NormalizedFloats(normalized.z, normalized.w);
+            float topRadii = ShaderPacker.Pack2NormalizedFloatsUnchecked(normalized.x, normalized.y);
+            float bottomRadii = ShaderPacker.Pack2NormalizedFloatsUnchecked(normalized.z, normalized.w);
             return new Vector2(topRadii, bottomRadii);
         }
 
