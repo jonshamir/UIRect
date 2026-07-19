@@ -38,6 +38,10 @@ namespace UIRect
         private SerializedProperty _bevelWidth;
         private SerializedProperty _bevelStrength;
 
+        private SerializedProperty _raycastTarget;
+        private SerializedProperty _raycastPadding;
+        private SerializedProperty _maskable;
+
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
 
@@ -70,6 +74,10 @@ namespace UIRect
 
             _bevelWidth = serializedObject.FindProperty("bevelWidth");
             _bevelStrength = serializedObject.FindProperty("bevelStrength");
+
+            _raycastTarget = serializedObject.FindProperty("m_RaycastTarget");
+            _raycastPadding = serializedObject.FindProperty("m_RaycastPadding");
+            _maskable = serializedObject.FindProperty("m_Maskable");
         }
 
         public override void OnInspectorGUI()
@@ -120,6 +128,16 @@ namespace UIRect
             // differ show Unity's mixed-value dash.
             GUILayout.Space(10);
             _shadowList.DoLayoutList();
+
+            // Native Graphic properties, laid out like Unity's own Image inspector.
+            GUILayout.Space(10);
+            EditorGUILayout.PropertyField(_raycastTarget);
+            using (new EditorGUI.DisabledScope(!_raycastTarget.boolValue))
+            {
+                EditorGUILayout.PropertyField(_raycastPadding, new GUIContent("Raycast Padding",
+                    "Padding shrinking the raycast area on each edge: X = Left, Y = Bottom, Z = Right, W = Top"));
+            }
+            EditorGUILayout.PropertyField(_maskable);
 
             GUILayout.Space(5);
 
