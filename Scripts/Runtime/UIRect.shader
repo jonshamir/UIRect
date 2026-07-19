@@ -16,6 +16,10 @@ Shader "UI/UIRect"
         _ColorMask ("Color Mask", Float) = 15
  
         [Toggle(UNITY_UI_ALPHACLIP)] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
+
+        // Proximity mask (center is set globally via _GlobalReticlePos)
+        _MaskRadius ("Mask Radius", Float) = 0
+        _MaskFalloff ("Mask Falloff", Float) = 0.05
     }
  
     SubShader
@@ -94,6 +98,7 @@ Shader "UI/UIRect"
                 float4 uv3 : TEXCOORD5;
                 float3 objViewDir : TEXCOORD4;  // Object-space vertex→camera (unnormalized), for parallax/bevel
                 float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
+                float4 worldPosition : TEXCOORD7;  // For the proximity mask (distance to _GlobalReticlePos)
 
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -103,6 +108,10 @@ Shader "UI/UIRect"
             half4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+
+            float4 _GlobalReticlePos; // Set globally by NearFarReticleVisual
+            float _MaskRadius;
+            float _MaskFalloff;
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
@@ -116,6 +125,7 @@ Shader "UI/UIRect"
                 // Object-space view dir for the parallax/bevel paths
                 OUT.objViewDir = ObjSpaceViewDir(v.vertex);
                 OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
+                OUT.worldPosition = mul(unity_ObjectToWorld, v.vertex);
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
                 
                 OUT.uv = TRANSFORM_TEX(v.uv0, _MainTex);
@@ -278,6 +288,13 @@ Shader "UI/UIRect"
 
                 // Remove pixels outside the outer border
                 color.a *= smoothstep(outerDist, outerDist - pixelWidth, dist);
+
+                // Proximity mask (disabled when _MaskRadius == 0)
+                if (_MaskRadius > 0)
+                {
+                    float distToMask = distance(IN.worldPosition.xyz, _GlobalReticlePos.xyz);
+                    color.a *= 1.0 - smoothstep(_MaskRadius - _MaskFalloff, _MaskRadius, distToMask);
+                }
 
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 color.rgb = pow(color.rgb, 2.2);
