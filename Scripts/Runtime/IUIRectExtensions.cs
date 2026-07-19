@@ -10,7 +10,10 @@ namespace UIRect
     /// </summary>
     public static class IUIRectExtensions
     {
-        /// <summary>Builds a fully-populated <see cref="UIRectStyle"/> from the host's current values.</summary>
+        /// <summary>
+        /// Builds a fully-populated <see cref="UIRectStyle"/> from the host's current values.
+        /// Allocates a fresh shadow list each call — avoid polling per frame.
+        /// </summary>
         public static UIRectStyle GetStyle(this IUIRect h) => new UIRectStyle
         {
             FillColor = h.FillColor,

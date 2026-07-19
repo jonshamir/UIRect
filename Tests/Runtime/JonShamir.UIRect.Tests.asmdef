@@ -2,7 +2,8 @@
     "name": "JonShamir.UIRect.Tests",
     "rootNamespace": "UIRect.Tests",
     "references": [
-        "JonShamir.UIRect"
+        "JonShamir.UIRect",
+        "UnityEngine.TestRunner"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
