@@ -4,7 +4,7 @@ using UnityEngine;
 namespace UIRect
 {
     /// <summary>Methods for packing data to pass from the CPU to the GPU efficiently</summary>
-    public static class ShaderPacker
+    internal static class ShaderPacker
     {
     	/// <summary>
     	/// Packs 2 floats into a single float.
@@ -31,7 +31,7 @@ namespace UIRect
     	}
 
     	/// <summary><see cref="Pack2NormalizedFloats"/> without the throwing checks (clamps instead), for hot paths.</summary>
-    	internal static float Pack2NormalizedFloatsUnchecked(float a, float b)
+    	public static float Pack2NormalizedFloatsUnchecked(float a, float b)
     	{
     		uint aInt = (UInt32)Mathf.FloorToInt(Mathf.Clamp01(a) * UInt16.MaxValue);
     		uint bInt = ((UInt32)Mathf.FloorToInt(Mathf.Clamp01(b) * UInt16.MaxValue)) << 16;
