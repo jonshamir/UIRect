@@ -7,9 +7,8 @@ using UnityEngine.UI;
 namespace UIRect
 {
     /// <summary>
-    /// Snapshot of the style values <see cref="UIRectRenderer"/> needs to build a rounded-rect
-    /// mesh. Each component (UIRectImage / UIRectRawImage) fills this in from its own serialized fields, so
-    /// the renderer stays agnostic of the underlying graphic type.
+    /// Style snapshot each graphic fills in for <see cref="UIRectRenderer"/>, keeping the
+    /// renderer agnostic of the underlying graphic type.
     /// </summary>
     public struct UIRectRenderParams
     {
@@ -27,14 +26,10 @@ namespace UIRect
     }
 
     /// <summary>
-    /// Shared, graphic-type-agnostic rendering core for UIRect-style rounded rectangles.
-    /// Both <c>UIRectImage</c> (Image) and <c>UIRectRawImage</c> (RawImage) delegate to this, so the
-    /// mesh generation, UV packing, SDF feed and material live in exactly one place.
-    ///
-    /// The texture is bound by the base graphic (UGUI sets <c>_MainTex</c> from
-    /// <c>Graphic.mainTexture</c> — the sprite texture for Image, the raw texture for RawImage),
-    /// so this code never touches the texture source. UGUI mesh generation is single-threaded,
-    /// which is why the scratch buffers below can safely be static and shared.
+    /// Shared rendering core (mesh generation, UV packing, material cache) for both
+    /// <c>UIRectImage</c> and <c>UIRectRawImage</c>. The base graphic binds the texture, so this
+    /// code never touches it. UGUI mesh generation is single-threaded, so the static scratch
+    /// buffers are safe.
     /// </summary>
     public static class UIRectRenderer
     {
@@ -44,8 +39,9 @@ namespace UIRect
         private const string KEYWORD_BEVELS = "_USE_BEVELS";
 
         private static Shader _shader;
+        private static bool _warnedMissingShader;
 
-        // Indexed by enabled local-keyword bits; hit on every defaultMaterial query.
+        // Indexed by enabled local-keyword bits.
         private static readonly Material[] _materials = new Material[2];
 
         public static Material GetMaterial(bool useBevel)
@@ -56,15 +52,25 @@ namespace UIRect
                 return material;
 
             _shader ??= Shader.Find(SHADER_NAME);
+            if (_shader == null)
+            {
+                // Missing in headless editors / shader-stripped players. Fall back uncached: a
+                // later Find can still win, and the shared material must never be destroyed.
+                if (!_warnedMissingShader)
+                {
+                    _warnedMissingShader = true;
+                    Debug.LogWarning($"UIRect: shader \"{SHADER_NAME}\" not found; falling back to the default UI material.");
+                }
+                return Canvas.GetDefaultCanvasMaterial();
+            }
             material = new Material(_shader);
             material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
             _materials[index] = material;
             return material;
         }
 
-        // Destroys the cached materials and drops the shader reference; the cache rebuilds lazily on
-        // the next GetMaterial call. Run before an editor domain reload and on player quit (hooks
-        // below). The shader is borrowed from Shader.Find, so it's only unreferenced, never destroyed.
+        // Clears the cache before domain reload / on quit; it rebuilds lazily. The shader is
+        // borrowed from Shader.Find, so it's only unreferenced, never destroyed.
         private static void ReleaseMaterials()
         {
             for (int i = 0; i < _materials.Length; i++)
@@ -80,6 +86,7 @@ namespace UIRect
                 _materials[i] = null;
             }
             _shader = null;
+            _warnedMissingShader = false;
         }
 
     #if UNITY_EDITOR
@@ -98,21 +105,18 @@ namespace UIRect
 
         private static UIVertex[] _baseVertices = new UIVertex[256];
         private static UIVertex[] _mainVertices = new UIVertex[256];
-        // One scratch buffer serves every shadow quad: AddUIVertexQuad copies the verts out
-        // immediately, so it can be reused for any number of shadows.
+        // AddUIVertexQuad copies verts out immediately, so one scratch buffer serves all shadows.
         private static UIVertex[] _scratchVertices = new UIVertex[256];
 
         /// <summary>
-        /// Rebuilds <paramref name="vh"/> — already populated by the base graphic — into the
-        /// rounded-rect fill (and optional shadow) quads, packing style data into the UV channels
-        /// read by the UI/UIRect shader. Type-agnostic: the content UVs are read straight from the
-        /// base mesh, so this behaves identically for Image (sprite) and RawImage (uvRect).
+        /// Rebuilds <paramref name="vh"/> (already populated by the base graphic) into rounded-rect
+        /// fill and shadow quads, packing style data into the UV channels read by the shader.
         /// </summary>
         public static void Populate(VertexHelper vh, in UIRectRenderParams p)
         {
             int baseVertCount = vh.currentVertCount;
             if (baseVertCount == 0)
-                return; // base graphic produced no geometry - nothing to draw
+                return;
 
             SnapshotBaseVertices(vh, baseVertCount, out Vector2 uvCenter, out Vector3 posCenter);
 
@@ -126,10 +130,8 @@ namespace UIRect
             var shadows = p.shadows;
             int shadowCount = shadows?.Count ?? 0;
 
-            // List index 0 is visually topmost (CSS box-shadow convention) and UGUI paints quads in
-            // emission order, so both shadow passes walk the list back-to-front.
-
-            // Outer shadows first, so they all render behind the fill.
+            // Index 0 is topmost (CSS convention) and UGUI paints in emission order, so both
+            // passes walk back-to-front. Outer shadows first, behind the fill.
             for (int i = shadowCount - 1; i >= 0; i--)
             {
                 UIRectShadow s = shadows[i];
@@ -142,8 +144,8 @@ namespace UIRect
 
             AddUIVertexQuad(vh, _mainVertices);
 
-            // Inner shadows last, so they render on top of the fill. The quad stays aligned with the
-            // fill (center = p.translate) so its SDF matches the shape; the offset is applied in the shader.
+            // Inner shadows on top of the fill. The quad stays fill-aligned so its SDF matches the
+            // shape; the offset is applied in the shader.
             for (int i = shadowCount - 1; i >= 0; i--)
             {
                 UIRectShadow s = shadows[i];
@@ -155,10 +157,8 @@ namespace UIRect
             }
         }
 
-        // Copies the base mesh into _baseVertices (so quads survive vh.Clear()) and computes its
-        // centroids in the same pass. Quads scale about these centroids as they grow for
-        // Middle/Outside borders or shadow blur: uvCenter keeps content UVs aligned, posCenter keeps
-        // the SDF shape aligned under any anchor/pivot.
+        // Copies the base mesh (so quads survive vh.Clear()) and computes the centroids quads
+        // scale about: uvCenter keeps content UVs aligned, posCenter keeps the SDF aligned.
         private static void SnapshotBaseVertices(VertexHelper vh, int count,
             out Vector2 uvCenter, out Vector3 posCenter)
         {
@@ -178,7 +178,7 @@ namespace UIRect
             posCenter = posSum / count;
         }
 
-        // Constants shared by every quad of one Populate call, packed once.
+        // Per-Populate constants, packed once.
         private readonly struct QuadInvariants
         {
             public readonly Vector2 packedRadii;
@@ -215,14 +215,12 @@ namespace UIRect
 
             Vector4 uv1 = new Vector4(size.x, size.y, inv.packedRadii.x, inv.packedRadii.y);
             Vector4 uv2 = new Vector4(packedFillColor, inv.packedBorderColor, effectWidth, borderAlignOffset);
-            // uv3.z is read as bevelStrength by the fill/bevel path, as shadowSpread by the shadow
-            // path — so shadow quads carry spread here instead.
+            // uv3.z: bevelStrength for fill quads, spread for shadow quads.
             float strengthOrSpread = renderMode == BoxRenderMode.Shadow ? spread : p.bevelStrength;
             Vector4 uv3 = new Vector4((int)renderMode, p.bevelWidth, strengthOrSpread, 0);
 
-            // The inner-shadow path ignores borderColor / borderAlign / bevelWidth, so those slots
-            // carry its spread and 3D offset instead (local rect units; the shader converts to
-            // pos-space and adds the Z parallax).
+            // Inner shadows reuse the unused border/bevel slots for spread and 3D offset
+            // (local rect units; the shader adds the Z parallax).
             if (renderMode == BoxRenderMode.InnerShadow)
             {
                 uv2 = new Vector4(packedFillColor, innerOffset.z, effectWidth, innerOffset.x);
@@ -231,7 +229,7 @@ namespace UIRect
 
             float quadSizeOffset = borderAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
-                // Exact ±3σ blur support (the shader's early-out bound) — shrinking this clips the shadow
+                // ±3σ blur support (the shader's early-out bound); smaller clips the shadow
                 quadSizeOffset = effectWidth * 3f + spread;
             else if (renderMode == BoxRenderMode.InnerShadow)
                 quadSizeOffset = 0; // inner shadow lives inside the fill footprint
@@ -270,13 +268,12 @@ namespace UIRect
         {
             vh.AddUIVertexQuad(quad);
 
-            // UGUI workaround - to carry UV1/UV2/UV3 the vertices must be explicitly re-set
+            // UGUI workaround: vertices must be re-set to carry UV1/UV2/UV3
             for (int i = 0; i < 4; i++)
                 vh.SetUIVertex(quad[i], vh.currentVertCount - 4 + i);
         }
 
-        // Normalizes & packs corner radii into single floats, unpacked in the shader.
-        // top-left | top-right | bottom-right | bottom-left
+        // Packs corner radii (TL|TR|BR|BL), normalized by width, into two floats for the shader.
         private static Vector2 PackRadii(Vector4 radii, Vector2 size)
         {
             if (size.x <= 0f)
@@ -284,7 +281,6 @@ namespace UIRect
 
             float maxRadius = Mathf.Min(size.x, size.y) / 2;
             Vector4 clamped = Vector4.Min(Vector4.Max(radii, Vector4.zero), Vector4.one * maxRadius);
-            // Normalize to [0,1], assuming radii are at most half the short dimension
             Vector4 normalized = clamped / size.x;
 
             float topRadii = ShaderPacker.Pack2NormalizedFloatsUnchecked(normalized.x, normalized.y);

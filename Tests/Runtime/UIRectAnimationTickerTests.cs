@@ -86,6 +86,9 @@ namespace UIRect.Tests
             _canvasGo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             _go.transform.SetParent(_canvasGo.transform, false);
 
+            // Stock material: headless CI can't resolve the UIRect shader, which isn't under test.
+            _image.material = Canvas.GetDefaultCanvasMaterial();
+
             bool completed = false;
             _image.AnimateTo(new UIRectStyle { FillColor = Color.red }, duration: 0.05f,
                 onComplete: () => completed = true);
