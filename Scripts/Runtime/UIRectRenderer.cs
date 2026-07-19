@@ -45,8 +45,7 @@ namespace UIRect
 
         private static Shader _shader;
 
-        // Materials indexed by their enabled local-keyword bits (future keywords grow the array).
-        // Hit on every defaultMaterial query, hence a plain array rather than a dictionary.
+        // Indexed by enabled local-keyword bits; hit on every defaultMaterial query.
         private static readonly Material[] _materials = new Material[2];
 
         public static Material GetMaterial(bool useBevel)
@@ -179,7 +178,7 @@ namespace UIRect
             posCenter = posSum / count;
         }
 
-        // Per-Populate constants shared by every quad (fill + all shadows), packed once instead of per quad.
+        // Constants shared by every quad of one Populate call, packed once.
         private readonly struct QuadInvariants
         {
             public readonly Vector2 packedRadii;
@@ -232,8 +231,7 @@ namespace UIRect
 
             float quadSizeOffset = borderAlignOffset * effectWidth;
             if (renderMode == BoxRenderMode.Shadow)
-                // Exact ±3σ support of the blur — the shader early-outs at |dist| > 3σ
-                // (BlurredRect.cginc), so shrinking this clips the shadow.
+                // Exact ±3σ blur support (the shader's early-out bound) — shrinking this clips the shadow
                 quadSizeOffset = effectWidth * 3f + spread;
             else if (renderMode == BoxRenderMode.InnerShadow)
                 quadSizeOffset = 0; // inner shadow lives inside the fill footprint

@@ -5,10 +5,8 @@ namespace UIRect
 {
     /// <summary>
     /// Drives style animations without per-component <c>Update()</c> calls. Components register on
-    /// <c>AnimateTo</c>; the ticker advances all active animators from
-    /// <see cref="Canvas.preWillRenderCanvases"/> (before the UGUI rebuild, so the Style setter's
-    /// <c>SetVerticesDirty</c> lands the same frame) and unhooks itself when the last animation
-    /// ends — idle scenes pay nothing.
+    /// <c>AnimateTo</c>; the ticker runs from <see cref="Canvas.preWillRenderCanvases"/> (so the
+    /// mesh rebuild lands the same frame) and unhooks itself when the last animation ends.
     /// </summary>
     internal static class UIRectAnimationTicker
     {
@@ -24,7 +22,7 @@ namespace UIRect
         /// <summary>Number of active animations (exposed for tests).</summary>
         internal static int ActiveCount => _entries.Count;
 
-        /// <summary>Starts ticking <paramref name="animator"/>; re-registering a live entry is a no-op.</summary>
+        /// <summary>Starts ticking; re-registering a live entry is a no-op.</summary>
         public static void Register(IUIRect host, UIRectAnimator animator)
         {
             for (int i = 0; i < _entries.Count; i++)

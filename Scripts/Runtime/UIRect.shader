@@ -113,7 +113,7 @@ Shader "UI/UIRect"
                 v2f OUT;
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
-                // View dir for the parallax/bevel paths (interpolates exactly; normalized per-fragment)
+                // Object-space view dir for the parallax/bevel paths
                 OUT.objViewDir = ObjSpaceViewDir(v.vertex);
                 OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
@@ -138,9 +138,8 @@ Shader "UI/UIRect"
             {
                 int boxRenderMode = IN.uv3.x;
 
-                // Shadows are pure shadow-color × tint (CSS semantics), so only the fill path pays
-                // the texture fetch + gamma decode. Gradients are taken before the branch —
-                // implicit-LOD sampling is not allowed under divergent flow control.
+                // Only the fill path samples the texture (shadows are pure shadow-color × tint).
+                // Gradients must be taken before the branch (no implicit-LOD sampling in divergent flow).
                 float2 uvDdx = ddx(IN.uv);
                 float2 uvDdy = ddy(IN.uv);
                 half4 color = IN.color * IN.fillColor;
@@ -176,8 +175,7 @@ Shader "UI/UIRect"
                     float2 offsetXY = float2(IN.uv2.w, IN.uv3.w);
                     float offsetZ = IN.uv2.y;
 
-                    // View direction so a depth (Z) offset parallaxes when the quad is viewed at an
-                    // angle; normalized so the zSafe epsilon stays meaningful.
+                    // View dir so a depth (Z) offset parallaxes at an angle; normalized for the zSafe epsilon
                     float3 viewDir = normalize(IN.objViewDir);
                     // Object-space viewDir.z is usually negative (local +Z faces into the screen).
                     // Push it off zero on its own side; a plain max() would flip the sign and blow up.

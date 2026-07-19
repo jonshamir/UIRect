@@ -89,7 +89,7 @@ namespace UIRect
         public void AnimateTo(UIRectStyle style, float duration = 0.3f, AnimationCurve easeCurve = null, Action onComplete = null)
         {
             _animator.AnimateTo(Style, style, duration, easeCurve, onComplete);
-            UIRectAnimationTicker.Register(this, _animator); // Ticks until completion; no per-frame Update
+            UIRectAnimationTicker.Register(this, _animator);
         }
 
         /// <summary>
