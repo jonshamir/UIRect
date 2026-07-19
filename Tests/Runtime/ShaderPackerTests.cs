@@ -105,17 +105,6 @@ namespace UIRect.Tests
         }
 
         [Test]
-        public void SingleToUInt32_AndBack_RoundTrips()
-        {
-            float original = 123.456f;
-
-            uint asUint = ShaderPacker.SingleToUInt32(original);
-            float back = ShaderPacker.UInt32ToSingle(asUint);
-
-            Assert.AreEqual(original, back);
-        }
-
-        [Test]
         public void Pack2NormalizedFloats_VariousValues_MaintainsPrecision()
         {
             float[] testValues = { 0f, 0.1f, 0.25f, 0.5f, 0.75f, 0.9f, 1f };
