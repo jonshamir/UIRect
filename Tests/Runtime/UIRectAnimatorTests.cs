@@ -8,9 +8,9 @@ namespace UIRect.Tests
     {
         private static UIRectStyle StyleWithShadows(params float[] sizes)
         {
-            var shadows = new List<UIRectShadow>(sizes.Length);
+            var shadows = new List<UIRectShadowStyle>(sizes.Length);
             foreach (var s in sizes)
-                shadows.Add(new UIRectShadow { color = Color.black, size = s });
+                shadows.Add(new UIRectShadowStyle { color = Color.black, size = s });
             return new UIRectStyle { Shadows = shadows };
         }
 
@@ -46,7 +46,7 @@ namespace UIRect.Tests
             // First tick fires at ~t=0 (elapsed ~0), so the eased value is ~0 ⇒ matches the source.
             var expected = UIRectStyle.Lerp(from, to, curve.Evaluate(0f));
             Assert.AreEqual(expected.Shadows.Count, current.Shadows.Count);
-            Assert.AreEqual(expected.Shadows[0].size, current.Shadows[0].size, 1e-4f);
+            Assert.AreEqual(expected.Shadows[0].size.Value, current.Shadows[0].size.Value, 1e-4f);
             Assert.AreEqual(expected.Shadows[0].color, current.Shadows[0].color);
         }
 
@@ -61,7 +61,7 @@ namespace UIRect.Tests
             animator.AnimateTo(from, to, duration: 0f, easeCurve: AnimationCurve.Linear(0, 0, 1, 1), onComplete: null);
 
             Assert.IsTrue(animator.Tick(out var current));
-            Assert.AreEqual(20f, current.Shadows[0].size, 1e-4f, "A zero-duration tick must land exactly on the target.");
+            Assert.AreEqual(20f, current.Shadows[0].size.Value, 1e-4f, "A zero-duration tick must land exactly on the target.");
             Assert.IsFalse(animator.IsAnimating, "The animation must complete on the snapping frame.");
         }
 

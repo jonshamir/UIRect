@@ -21,9 +21,9 @@ namespace UIRect
             BorderWidth = h.BorderWidth,
             BorderAlign = h.BorderAlignment,
 
-            // Copy: style snapshots (e.g. animation endpoints) must not alias the live list.
-            // null round-trips as null (the renderer treats null as "no shadows").
-            Shadows = h.Shadows == null ? null : new List<UIRectShadow>(h.Shadows),
+            // Snapshot the live shadows as fully-populated style entries (no aliasing of the live
+            // list). null round-trips as null (the renderer treats null as "no shadows").
+            Shadows = ToStyleShadows(h.Shadows),
 
             BevelWidth = h.BevelWidth,
             BevelStrength = h.BevelStrength,
@@ -43,21 +43,48 @@ namespace UIRect
             h.BorderWidth = style.BorderWidth ?? h.BorderWidth;
             h.BorderAlignment = style.BorderAlign ?? h.BorderAlignment;
 
-            // Copy into the host's existing list (a serialized field callers may hold) rather than
-            // replace it. Skip when the two alias the same instance, else Clear() empties the source.
-            if (style.Shadows != null && !ReferenceEquals(style.Shadows, h.Shadows))
-            {
-                if (h.Shadows == null)
-                    h.Shadows = new List<UIRectShadow>(style.Shadows);
-                else
-                {
-                    h.Shadows.Clear();
-                    h.Shadows.AddRange(style.Shadows);
-                }
-            }
+            ApplyShadows(h, style.Shadows);
 
             h.BevelWidth = style.BevelWidth ?? h.BevelWidth;
             h.BevelStrength = style.BevelStrength ?? h.BevelStrength;
+        }
+
+        // Fully-populated style entries snapshotting the live shadows (structs, so the copies never
+        // alias the source list). Returns null for a null list so it round-trips through the style.
+        private static List<UIRectShadowStyle> ToStyleShadows(List<UIRectShadow> shadows)
+        {
+            if (shadows == null)
+                return null;
+
+            var list = new List<UIRectShadowStyle>(shadows.Count);
+            for (int i = 0; i < shadows.Count; i++)
+                list.Add(UIRectShadowStyle.From(shadows[i]));
+            return list;
+        }
+
+        // Merges the authored shadows onto the host's concrete list in place. Each entry resolves its
+        // unset props against the current shadow at that index (UIRectShadow.Default for a new index),
+        // so dropped props inherit what the UIRect already shows. The host list length follows the
+        // authored list: extra current shadows past its end are dropped. A null list leaves shadows
+        // untouched (unset member).
+        private static void ApplyShadows(IUIRect h, List<UIRectShadowStyle> shadows)
+        {
+            if (shadows == null)
+                return;
+
+            var host = h.Shadows ??= new List<UIRectShadow>(shadows.Count);
+            for (int i = 0; i < shadows.Count; i++)
+            {
+                UIRectShadow baseline = i < host.Count ? host[i] : UIRectShadow.Default;
+                UIRectShadow resolved = shadows[i].Resolve(baseline);
+                if (i < host.Count)
+                    host[i] = resolved;
+                else
+                    host.Add(resolved);
+            }
+
+            if (host.Count > shadows.Count)
+                host.RemoveRange(shadows.Count, host.Count - shadows.Count);
         }
 
         /// <summary>Snapshots the host's style into the DTO <see cref="UIRectRenderer"/> consumes.</summary>

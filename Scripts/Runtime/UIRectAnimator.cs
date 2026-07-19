@@ -24,7 +24,7 @@ namespace UIRect
 
         // Reused across ticks so per-frame lerps allocate no shadow list. Safe because the returned
         // style is consumed synchronously (copied into the host list by ApplyStyle) before the next Tick.
-        private readonly List<UIRectShadow> _shadowBuffer = new();
+        private readonly List<UIRectShadowStyle> _shadowBuffer = new();
 
         public bool IsAnimating => _isAnimating;
 

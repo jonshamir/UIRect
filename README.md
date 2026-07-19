@@ -131,6 +131,13 @@ uiRect.AnimateTo(hoverStyle, 0.5f);
 Shadows animate index-by-index: give the start and end styles a `Shadows` list of the same
 length and matching entries interpolate. Extra entries fade in or out as the count changes.
 
+Individual shadow props are optional, just like the top-level style members: any prop you leave
+unset (e.g. `new() { size = 20 }`) inherits the value the UIRect's shadow at that index already
+has, so you only specify what changes. A brand-new shadow index falls back to the built-in defaults.
+
+To remove every shadow, assign `Shadows = UIRectStyle.NoShadows` (like CSS `box-shadow: none`);
+leaving `Shadows` unset leaves the existing shadows untouched.
+
 ### Animation with Callback
 
 ```csharp
@@ -173,15 +180,9 @@ public class UIRectButton : MonoBehaviour
         {
             FillColor = new Color(0.9f, 0.9f, 1f),
             BorderColor = Color.blue,
-            Shadows = new()
-            {
-                new()
-                {
-                    color = new(0, 0, 0, 0.3f),
-                    size = 15,
-                    offset = new(0, -2, 0)
-                }
-            }
+            // Only grow the shadow; color and offset are left unset, so they inherit
+            // whatever the shadow currently has (here, normalStyle's values).
+            Shadows = new() { new() { size = 15 } }
         };
 
         uiRect.Style = normalStyle;

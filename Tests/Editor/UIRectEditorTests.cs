@@ -159,21 +159,9 @@ namespace UIRect.Tests.Editor
 
             Assert.DoesNotThrow(() => _uiRect.Style = new UIRectStyle
             {
-                Shadows = new List<UIRectShadow> { UIRectShadow.Default }
+                Shadows = new List<UIRectShadowStyle> { UIRectShadowStyle.From(UIRectShadow.Default) }
             }, "Applying shadows onto a null host list must not throw.");
             Assert.AreEqual(1, _uiRect.shadows.Count, "Applying shadows must allocate the host list.");
-        }
-
-        [Test]
-        public void UIRect_ApplyStyle_AliasingLiveList_KeepsShadows()
-        {
-            _uiRect.shadows.Add(new UIRectShadow { color = Color.black, size = 10 });
-
-            // A hand-built style whose Shadows aliases the live list must not self-wipe on apply.
-            _uiRect.Style = new UIRectStyle { Shadows = _uiRect.shadows };
-
-            Assert.AreEqual(1, _uiRect.shadows.Count, "Applying a style that aliases the live list must not clear it.");
-            Assert.AreEqual(10f, _uiRect.shadows[0].size);
         }
     }
 }

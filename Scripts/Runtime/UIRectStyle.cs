@@ -25,9 +25,16 @@ namespace UIRect
         public float? BorderWidth;
         public BorderAlign? BorderAlign;
 
-        // Shadows (outer and inner mixed; index 0 is topmost). null = unset, like the other
-        // members; a non-null empty list means "no shadows".
-        public List<UIRectShadow> Shadows;
+        // Shadows (outer and inner mixed; index 0 is topmost). Three states: null = leave the
+        // UIRect's shadows alone (like the other members); NoShadows = remove every shadow; a
+        // non-empty list = merge per index. Entries are UIRectShadowStyle so individual props can
+        // be left unset and inherited from the UIRect's current shadow at that index.
+        public List<UIRectShadowStyle> Shadows;
+
+        // Assign to Shadows to remove every shadow, like CSS `box-shadow: none`. A fresh empty list
+        // each access so callers can't mutate a shared instance. (An empty list has always meant
+        // "clear"; this just names the intent.)
+        public static List<UIRectShadowStyle> NoShadows => new();
 
         // Bevel
         public float? BevelWidth;
@@ -38,7 +45,7 @@ namespace UIRect
 
         // The animator passes a reusable shadowBuffer so per-frame lerps allocate nothing;
         // a null buffer allocates a fresh list.
-        public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadow> shadowBuffer)
+        public static UIRectStyle Lerp(UIRectStyle s1, UIRectStyle s2, float t, List<UIRectShadowStyle> shadowBuffer)
         {
             return new UIRectStyle()
             {
@@ -69,34 +76,40 @@ namespace UIRect
 
         // Index-matched shadow lerp. Entries past the shorter list fade their alpha (in from b, out
         // from a) so count changes animate smoothly. A null source or target gives a null result.
-        private static List<UIRectShadow> LerpShadowsInto(List<UIRectShadow> a, List<UIRectShadow> b, float t,
-            List<UIRectShadow> buffer)
+        private static List<UIRectShadowStyle> LerpShadowsInto(List<UIRectShadowStyle> a, List<UIRectShadowStyle> b,
+            float t, List<UIRectShadowStyle> buffer)
         {
             if (a == null || b == null)
                 return null;
 
             int shared = Mathf.Min(a.Count, b.Count);
-            var result = buffer ?? new List<UIRectShadow>(Mathf.Max(a.Count, b.Count));
+            var result = buffer ?? new List<UIRectShadowStyle>(Mathf.Max(a.Count, b.Count));
             result.Clear();
 
             for (int i = 0; i < shared; i++)
-                result.Add(UIRectShadow.Lerp(a[i], b[i], t));
+                result.Add(UIRectShadowStyle.Lerp(a[i], b[i], t));
 
             // Extra source shadows fade out, then drop at t >= 1 to match the target count. Mathf.Lerp
             // (not LerpUnclamped) clamps the fade so an overshoot curve can't push alpha past its
             // endpoint or negative.
             if (t < 1f)
                 for (int i = shared; i < a.Count; i++)
-                    result.Add(FadeAlpha(a[i], Mathf.Lerp(a[i].color.a, 0, t)));
+                    result.Add(FadeAlpha(a[i], Mathf.Lerp(BaseAlpha(a[i]), 0, t)));
             for (int i = shared; i < b.Count; i++) // extra target shadows fade in
-                result.Add(FadeAlpha(b[i], Mathf.Lerp(0, b[i].color.a, t)));
+                result.Add(FadeAlpha(b[i], Mathf.Lerp(0, BaseAlpha(b[i]), t)));
 
             return result;
         }
 
-        private static UIRectShadow FadeAlpha(UIRectShadow s, float alpha)
+        // A brand-new target shadow may leave color unset (only size/offset authored); fall back to the
+        // Default color so a count-change fade still has an alpha to ramp.
+        private static float BaseAlpha(in UIRectShadowStyle s) => (s.color ?? UIRectShadow.Default.color).a;
+
+        private static UIRectShadowStyle FadeAlpha(UIRectShadowStyle s, float alpha)
         {
-            s.color.a = alpha;
+            Color c = s.color ?? UIRectShadow.Default.color;
+            c.a = alpha;
+            s.color = c;
             return s;
         }
     }
