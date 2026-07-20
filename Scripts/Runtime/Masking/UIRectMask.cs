@@ -34,7 +34,6 @@ namespace UIRect
 
         private static readonly List<MaskableGraphic> _maskables = new();
         private static readonly List<Graphic> _targets = new();
-        private static readonly Vector3[] _corners = new Vector3[4];
 
         #region Lifecycle
 
@@ -70,8 +69,29 @@ namespace UIRect
         public override void PerformClipping()
         {
             base.PerformClipping();
-            if (isActiveAndEnabled)
-                PushClipToMaterials();
+            if (!isActiveAndEnabled)
+                return;
+            PushClipToMaterials();
+
+            // RectMask2D culls children (and the whole mask) using its canvasRect — built from two opposite
+            // corners assuming an axis-aligned rect, so it collapses when the mask is rotated: its width is
+            // W·cosθ − H·sinθ, hitting zero at θ = atan(W/H), and past that validRect turns false and the
+            // children are hard-culled (they vanish entirely). Our rounded clip already decides visibility
+            // per-fragment in the mask's local space, so once rotated we undo that cull and let the shader do
+            // the clipping. Left intact when unrotated, where RectMask2D's offscreen culling is valid + useful.
+            if (IsRotatedInCanvas())
+                _materials?.RenderClippedChildren();
+        }
+
+        // True when this mask is rotated relative to the root canvas, i.e. RectMask2D's axis-aligned
+        // canvasRect (and the culling it drives) can no longer be trusted.
+        private bool IsRotatedInCanvas()
+        {
+            Canvas canvas = ResolveCanvas();
+            if (canvas == null)
+                return false;
+            Quaternion rel = Quaternion.Inverse(canvas.rootCanvas.transform.rotation) * transform.rotation;
+            return Quaternion.Angle(rel, Quaternion.identity) > 0.01f;
         }
 
 #if UNITY_EDITOR
@@ -165,52 +185,46 @@ namespace UIRect
         private void PushClipToMaterials()
         {
             if (_materials == null) return;
-            var (radii, inset) = ComputeClip();
-            _materials.PushClip(radii, inset);
+            var (radii, halfSize, clipToLocal) = ComputeClip();
+            _materials.PushClip(radii, halfSize, clipToLocal);
         }
 
-        // Converts the mask's radii and border inset into the canvas-local space shared by _ClipRect and the
-        // child vertex position (Canvas Scaler / nested scales). Returns the INNER radii (outer minus the
-        // border inset, concentric) clamped to the inner short side, plus the canvas-space inset. Rotation/
-        // skew between the mask and its canvas is unsupported, matching RectMask2D itself.
-        private (Vector4 radii, float inset) ComputeClip()
+        // Describes the mask's rounded rect in its own LOCAL space, plus a matrix that maps a fragment's
+        // canvas-space clip position (the space of _ClipRect and the child vertex position) into that local
+        // frame. Evaluating the clip in local space means it rotates/scales with the mask — a rotated mask
+        // clips its rotated children correctly, unlike the axis-aligned _ClipRect. Returns the INNER radii
+        // (outer minus the border inset, concentric) and inner half-size, both clamped, in local units.
+        private (Vector4 radii, Vector2 halfSize, Matrix4x4 clipToLocal) ComputeClip()
         {
             var rt = (RectTransform)transform;
             Rect rect = rt.rect;
-            float localW = rect.width, localH = rect.height;
-            if (localW <= 0f || localH <= 0f)
-                return (Vector4.zero, 0f);
-
-            float canvasW = localW, canvasH = localH, scale = 1f;
-            Canvas canvas = ResolveCanvas();
-            if (canvas != null)
-            {
-                rt.GetWorldCorners(_corners); // [0]=BL [1]=TL [2]=TR [3]=BR
-                Transform cs = canvas.transform;
-                Vector3 bl = cs.InverseTransformPoint(_corners[0]);
-                Vector3 tr = cs.InverseTransformPoint(_corners[2]);
-                canvasW = Mathf.Abs(tr.x - bl.x);
-                canvasH = Mathf.Abs(tr.y - bl.y);
-                scale = localW > 0f ? canvasW / localW : 1f;
-            }
+            if (rect.width <= 0f || rect.height <= 0f)
+                return (Vector4.zero, Vector2.zero, Matrix4x4.identity);
 
             float insetLocal = BorderInsetLocal;
-            float insetCanvas = insetLocal * scale;
+            float halfW = Mathf.Max(rect.width * 0.5f - insetLocal, 0f);
+            float halfH = Mathf.Max(rect.height * 0.5f - insetLocal, 0f);
 
-            // Inner radii = outer minus the border inset (concentric), scaled to canvas space.
+            // Inner radii = outer minus the border inset (concentric), clamped to half the inner short side.
+            float maxR = Mathf.Min(halfW, halfH);
             Vector4 inner = SourceRadii - Vector4.one * insetLocal;
-            inner = new Vector4(Mathf.Max(inner.x, 0f), Mathf.Max(inner.y, 0f),
-                                Mathf.Max(inner.z, 0f), Mathf.Max(inner.w, 0f)) * scale;
-
-            // Clamp to half the inner (inset) short side.
-            float maxR = Mathf.Max(0f, 0.5f * Mathf.Min(canvasW, canvasH) - insetCanvas);
             var radii = new Vector4(
                 Mathf.Clamp(inner.x, 0f, maxR),
                 Mathf.Clamp(inner.y, 0f, maxR),
                 Mathf.Clamp(inner.z, 0f, maxR),
                 Mathf.Clamp(inner.w, 0f, maxR));
 
-            return (radii, insetCanvas);
+            // Root-canvas-space clip position -> mask local, then recentre on the rect (its centre is the
+            // pivot offset). The child vertex position (shader clipPosition) lives in the ROOT canvas's local
+            // space — the same space RectMask2D builds _ClipRect in (Canvas.rootCanvas.InverseTransformPoint).
+            // With no canvas the vertex position is already mask-local, so only the recentre applies.
+            Matrix4x4 recentre = Matrix4x4.Translate(new Vector3(-rect.center.x, -rect.center.y, 0f));
+            Canvas canvas = ResolveCanvas();
+            Matrix4x4 clipToLocal = canvas != null
+                ? recentre * rt.worldToLocalMatrix * canvas.rootCanvas.transform.localToWorldMatrix
+                : recentre;
+
+            return (radii, new Vector2(halfW, halfH), clipToLocal);
         }
 
         private Canvas ResolveCanvas()

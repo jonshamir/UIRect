@@ -226,13 +226,11 @@ SubShader {
 			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * (1 - saturate(d - input.underlayParam.y)) * sd * (1 - c.a);
 			#endif
 
-			// Alternative implementation to UnityGet2DClipping with support for softness.
+			// UIRectMask clip. This shader is only ever used under a UIRectMask, so the rounded coverage
+			// fully replaces the base rectangular clip (whose _ClipRect degenerates when the mask is rotated
+			// — it is built from two opposite corners assuming an axis-aligned rect). input.mask.xy ==
+			// 2*(pos - center); the center stays valid under rotation, so reconstruct the canvas-space pos.
 			#if UNITY_UI_CLIP_RECT
-			half2 m = saturate((_ClipRect.zw - _ClipRect.xy - abs(input.mask.xy)) * input.mask.zw);
-			c *= m.x * m.y;
-
-			// UIRectMask: refine the rectangular clip above into a rounded one. input.mask.xy == 2*(pos - center),
-			// so reconstruct the canvas-space position the coverage function expects.
 			float2 uirectClipPos = input.mask.xy * 0.5 + (_ClipRect.xy + _ClipRect.zw) * 0.5;
 			c *= roundedClipCoverage(uirectClipPos);
 			#endif

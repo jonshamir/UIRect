@@ -21,7 +21,8 @@ namespace UIRect
     internal sealed class UIRectMaskMaterials
     {
         private static readonly int ClipRadiiId = Shader.PropertyToID("_ClipRectRadii");
-        private static readonly int ClipInsetId = Shader.PropertyToID("_ClipRectInset");
+        private static readonly int ClipHalfSizeId = Shader.PropertyToID("_ClipRectHalfSize");
+        private static readonly int ClipToLocalId = Shader.PropertyToID("_ClipToLocal");
 
         // Shared UIRect clip materials, by bevel keyword — at most two live per mask.
         private Material _uiRectNoBevel;
@@ -49,16 +50,19 @@ namespace UIRect
         }
 
         private Vector4 _radii = Vector4.zero;
-        private float _inset;
+        private Vector2 _halfSize;
+        private Matrix4x4 _clipToLocal = Matrix4x4.identity;
 
         /// <summary>
-        /// Pushes the mask's canvas-space corner radii and border inset onto every owned material (cheap,
-        /// no dirtying). Radii are the inner radii; inset shrinks the clip half-size (parent border extent).
+        /// Pushes the mask's local-space rounded rect (inner radii + half-size) and the canvas→mask-local
+        /// clip matrix onto every owned material (cheap, no dirtying). Evaluating in local space is what
+        /// lets a rotated mask clip its rotated children (see <see cref="UIRectMask"/>.ComputeClip).
         /// </summary>
-        public void PushClip(Vector4 canvasSpaceRadii, float canvasSpaceInset)
+        public void PushClip(Vector4 localRadii, Vector2 localHalfSize, Matrix4x4 clipToLocal)
         {
-            _radii = canvasSpaceRadii;
-            _inset = canvasSpaceInset;
+            _radii = localRadii;
+            _halfSize = localHalfSize;
+            _clipToLocal = clipToLocal;
             Apply(_uiRectNoBevel);
             Apply(_uiRectBevel);
 #if UIRECT_TMP
@@ -71,7 +75,21 @@ namespace UIRect
         {
             if (m == null) return;
             m.SetVector(ClipRadiiId, _radii);
-            m.SetFloat(ClipInsetId, _inset);
+            m.SetVector(ClipHalfSizeId, _halfSize);
+            m.SetMatrix(ClipToLocalId, _clipToLocal);
+        }
+
+        /// <summary>
+        /// Re-enables rendering of every clipped child by clearing its CanvasRenderer cull flag. RectMask2D
+        /// culls children through its axis-aligned canvasRect, which is invalid once the mask is rotated (the
+        /// children vanish at the angle where it collapses); the rounded clip does the real visibility test in
+        /// the shader, so the cull must be undone. Called per-clip-phase while the mask is rotated.
+        /// </summary>
+        public void RenderClippedChildren()
+        {
+            foreach (var g in _assigned.Keys)
+                if (g != null && g.canvasRenderer != null)
+                    g.canvasRenderer.cull = false;
         }
 
         /// <summary>

@@ -96,7 +96,7 @@ Shader "UI/UIRect"
                 float4 uv2 : TEXCOORD3;
                 float4 uv3 : TEXCOORD5;
                 float3 objViewDir : TEXCOORD4;  // Object-space vertex→camera (unnormalized), for parallax/bevel
-                float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
+                float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (root-canvas space)
 
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -121,7 +121,7 @@ Shader "UI/UIRect"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
                 // Object-space view dir for the parallax/bevel paths
                 OUT.objViewDir = ObjSpaceViewDir(v.vertex);
-                OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
+                OUT.clipPosition = v.vertex;  // For RectMask2d clipping (root-canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
                 
                 OUT.uv = TRANSFORM_TEX(v.uv0, _MainTex);
@@ -156,10 +156,13 @@ Shader "UI/UIRect"
                 // Clip coverage (rect + optional rounded). Applied to the FINAL composited alpha at each
                 // return below, so borders/shadows/bevels are clipped too — not just the fill.
                 float clipCoverage = 1.0;
-                #ifdef UNITY_UI_CLIP_RECT
+                // The rounded clip (UIRectMask) fully bounds the content in the mask's local space, so it
+                // supersedes the base rect clip. We must skip the latter then: RectMask2D's _ClipRect is
+                // built from two opposite world corners assuming an axis-aligned rect, so it collapses to a
+                // degenerate sliver when the mask is rotated — multiplying it in would re-clip axis-aligned.
+                #if defined(UNITY_UI_CLIP_RECT) && !defined(_ROUNDED_CLIP)
                 clipCoverage *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
                 #endif
-                // Rounded refinement of the rect clip above, driven by a UIRectMask parent.
                 #ifdef _ROUNDED_CLIP
                 clipCoverage *= roundedClipCoverage(IN.clipPosition.xy);
                 #endif

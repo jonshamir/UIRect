@@ -15,6 +15,7 @@ namespace UIRect.Tests
         private const string RoundedKeyword = "_ROUNDED_CLIP";
         private const string BevelKeyword = "_USE_BEVELS";
         private static readonly int ClipRadiiId = Shader.PropertyToID("_ClipRectRadii");
+        private static readonly int ClipHalfSizeId = Shader.PropertyToID("_ClipRectHalfSize");
 
         private GameObject _maskGO;
         private UIRectMask _mask;
@@ -116,6 +117,42 @@ namespace UIRect.Tests
             Assert.LessOrEqual(pushed.z, maxR + 1e-3f);
             Assert.LessOrEqual(pushed.w, maxR + 1e-3f);
             Assert.Greater(pushed.x, 0f, "Radii should be pushed to the child clip material.");
+        }
+
+        // --- rotation (mask-local clip) ------------------------------------------------------------
+
+        [Test]
+        public void Mask_ClipIsRotationInvariant_InCanvasSpace()
+        {
+            // A WorldSpace canvas with identity scale makes ComputeClip take its canvas branch
+            // deterministically (no ScreenSpace scaler jitter in headless mode).
+            var canvasGO = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas));
+            canvasGO.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+
+            _maskGO.transform.SetParent(canvasGO.transform, false);
+            var maskRT = (RectTransform)_maskGO.transform;
+            maskRT.sizeDelta = new Vector2(100, 100);
+            _mask.GetComponent<UIRectImage>().radius = new Vector4(40, 40, 40, 40); // below the 50 clamp
+            var child = AddUIRectChild();
+
+            maskRT.localRotation = Quaternion.identity;
+            _mask.RefreshMask();
+            Vector4 upright = child.material.GetVector(ClipRadiiId);
+
+            maskRT.localRotation = Quaternion.Euler(0, 0, 45);
+            _mask.RefreshMask();
+            Vector4 rotated = child.material.GetVector(ClipRadiiId);
+            Vector4 halfSize = child.material.GetVector(ClipHalfSizeId);
+
+            // Rotating the mask must not resize the rounded rect. The old world-AABB path inflated the
+            // radii by ~sqrt(2) at 45°; mask-local evaluation keeps them exact.
+            Assert.AreEqual(40f, rotated.x, 1e-2f,
+                "Clip radii must be evaluated in mask-local space, unaffected by the world-space AABB.");
+            Assert.AreEqual(upright.x, rotated.x, 1e-2f, "Clip radii must be rotation-invariant.");
+            Assert.AreEqual(50f, halfSize.x, 1e-2f, "Clip half-size must be the true local half-extent.");
+            Assert.AreEqual(50f, halfSize.y, 1e-2f, "Clip half-size must be the true local half-extent.");
+
+            Object.DestroyImmediate(canvasGO);
         }
 
         // --- teardown (opt-in / zero residue) ------------------------------------------------------
