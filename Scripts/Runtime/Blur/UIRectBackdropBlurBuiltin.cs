@@ -8,7 +8,7 @@ namespace UIRect
     /// Built-in Render Pipeline provider for UIRect backdrop blur. Attach to the camera that renders
     /// your UI (works with Screen Space - Camera and World Space canvases). It grabs the camera color
     /// before transparents, blurs it, and exposes it as the global <c>_UIRectBackdropTex</c> that
-    /// UIRect's <c>_USE_BLUR</c> shader variant samples.
+    /// the <c>UI/UIRectGlass</c> shader samples.
     ///
     /// Works in Play mode and in edit mode (<see cref="ExecuteAlways"/>): the effect previews live in
     /// the Game view, and - when <see cref="previewInSceneView"/> is on - in the Scene view too. The
@@ -88,6 +88,17 @@ namespace UIRect
         {
             if (_blurMaterial == null || !isActiveAndEnabled || cam == null)
                 return;
+
+            // No enabled UIRectBackdrop means nothing samples _UIRectBackdropTex, so skip the whole chain
+            // and hand back the render targets. Mirrors the URP feature's early-out; here the component
+            // being on a camera at all is already opt-in, so this mainly reclaims RT memory while every
+            // backdrop is disabled.
+            if (!UIRectBlurCore.HasWork)
+            {
+                if (_perCamera.Count > 0)
+                    ReleaseAll();
+                return;
+            }
 
             // Built-in RP can't produce a stereo backdrop under single-pass instanced/multiview XR
             // (cmd.Blit isn't stereo-aware). Skip and leave the neutral gray fallback in place.

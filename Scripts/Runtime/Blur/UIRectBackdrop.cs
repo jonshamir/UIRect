@@ -54,6 +54,21 @@ namespace UIRect
         // No content texture: the fill comes from the screen-space backdrop, not this graphic's texture.
         public override Texture mainTexture => s_WhiteTexture;
 
+        // Providers do nothing while no backdrop is enabled, so they need to know we exist. Registering
+        // here rather than in Awake/OnDestroy means disabling the component (or its GameObject) also
+        // stops the blur work, and ExecuteAlways keeps the count correct in edit mode.
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            UIRectBlurCore.RegisterBackdrop();
+        }
+
+        protected override void OnDisable()
+        {
+            UIRectBlurCore.UnregisterBackdrop();
+            base.OnDisable();
+        }
+
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             base.OnPopulateMesh(vh); // emits the base quad + UVs the renderer rewrites

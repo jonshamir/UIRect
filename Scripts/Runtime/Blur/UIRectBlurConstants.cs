@@ -18,7 +18,7 @@ namespace UIRect
         /// <summary>Name used to identify the Built-in RP command buffer for add/remove.</summary>
         public const string CommandBufferName = "UIRect Backdrop Blur";
 
-        /// <summary>Global blurred camera-color texture the UIRect <c>_USE_BLUR</c> variant samples.</summary>
+        /// <summary>Global blurred camera-color texture the <c>UI/UIRectGlass</c> shader samples.</summary>
         public static readonly int BackdropTexID = Shader.PropertyToID("_UIRectBackdropTex");
 
         /// <summary>Per-pass blur step in UV space: (radius/width, 0) horizontal or (0, radius/height) vertical.</summary>

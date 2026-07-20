@@ -13,8 +13,8 @@ namespace UIRect
     /// halving, so high downsample factors don't alias the way a single bilinear blit would);</item>
     /// <item>a separable Gaussian <b>ping-pong</b> (horizontal+vertical per iteration) between
     /// <paramref name="dst"/> and <paramref name="scratch"/>;</item>
-    /// <item>publishes the result as the global <c>_UIRectBackdropTex</c> the UIRect <c>_USE_BLUR</c>
-    /// variant samples.</item>
+    /// <item>publishes the result as the global <c>_UIRectBackdropTex</c> that the
+    /// <c>UI/UIRectGlass</c> shader samples.</item>
     /// </list>
     /// Uses only <see cref="CommandBuffer"/> + <see cref="RenderTargetIdentifier"/>, so it lives in the
     /// pipeline-agnostic Runtime assembly and both providers reuse it. Intermediate downsample levels use
@@ -34,14 +34,34 @@ namespace UIRect
         };
 
         // --- Provider registry ------------------------------------------------------------------------
-        // How many blur providers are currently live (both pipelines). The UIRect inspectors warn when a
-        // blurred element exists but nothing is filling _UIRectBackdropTex.
+        // How many blur providers are currently live (both pipelines). The UIRectBackdrop inspector warns
+        // when a backdrop exists but nothing is filling _UIRectBackdropTex.
 
         /// <summary>Number of live backdrop-blur providers across both render pipelines.</summary>
         public static int ActiveProviderCount { get; private set; }
 
         public static void RegisterProvider() => ActiveProviderCount++;
         public static void UnregisterProvider() => ActiveProviderCount = Mathf.Max(0, ActiveProviderCount - 1);
+
+        // --- Consumer registry ------------------------------------------------------------------------
+        // How many UIRectBackdrops are currently enabled. Providers skip all of their work when this is
+        // zero: producing _UIRectBackdropTex costs a downsample chain plus 2x iterations blits, and on URP
+        // it also forces an intermediate camera color texture (ConfigureInput), defeating the
+        // render-straight-to-backbuffer fast path. None of that should be paid by a scene with no glass in
+        // it, and a project that merely has the Blur assembly installed should be indistinguishable from
+        // one that doesn't.
+
+        /// <summary>Number of enabled <c>UIRectBackdrop</c> components consuming the blurred backdrop.</summary>
+        public static int ActiveBackdropCount { get; private set; }
+
+        public static void RegisterBackdrop() => ActiveBackdropCount++;
+        public static void UnregisterBackdrop() => ActiveBackdropCount = Mathf.Max(0, ActiveBackdropCount - 1);
+
+        /// <summary>
+        /// Whether providers should do any work this frame. False when no <c>UIRectBackdrop</c> is enabled,
+        /// in which case the global stays bound to the neutral-gray fallback (nothing samples it anyway).
+        /// </summary>
+        public static bool HasWork => ActiveBackdropCount > 0;
 
         // --- Fallback texture -------------------------------------------------------------------------
         // Bound once at load so a blurred element with no active provider degrades to a flat neutral gray

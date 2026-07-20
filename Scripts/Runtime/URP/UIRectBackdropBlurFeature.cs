@@ -11,7 +11,7 @@ namespace UIRect
     /// <summary>
     /// URP provider for UIRect backdrop blur. Add this Renderer Feature to your URP Renderer asset.
     /// It captures the camera color before transparents, blurs it, and exposes the global
-    /// <c>_UIRectBackdropTex</c> that UIRect's <c>_USE_BLUR</c> shader variant samples.
+    /// <c>_UIRectBackdropTex</c> that the <c>UI/UIRectGlass</c> shader samples.
     ///
     /// XR: correct under single-pass instanced / multiview and multi-pass. It drives the blur with Unity's
     /// <see cref="Blitter"/> (which loops the eye slices of the camera texture array) and a URP HLSL shader
@@ -60,6 +60,12 @@ namespace UIRect
             if (_pass == null)
                 return;
             if (renderingData.cameraData.cameraType == CameraType.Preview)
+                return;
+            // Nothing samples _UIRectBackdropTex, so skip the pass entirely. This must happen before
+            // ConfigureInput: that call is what forces URP to allocate and resolve an intermediate camera
+            // color texture, which on tiler GPUs costs more than the blur itself. With the feature merely
+            // present on the renderer and no backdrop in the scene, this makes it free.
+            if (!UIRectBlurCore.HasWork)
                 return;
             // The camera color target must be read inside the pass, so it is grabbed in Execute / RecordRenderGraph.
             _pass.ConfigureInput(ScriptableRenderPassInput.Color);
@@ -239,9 +245,13 @@ namespace UIRect
                 builder.UseTexture(scratch, AccessFlags.ReadWrite);
                 for (int level = 1; level < ds; level++)
                     builder.UseTexture(levels[level], AccessFlags.ReadWrite);
+                // The only consumer is the UI/UIRectGlass draw, which reads _UIRectBackdropTex as a global
+                // and so is invisible to the graph - without this the pass is culled as producing nothing.
+                // Enqueueing is already gated on a backdrop existing (see AddRenderPasses), so this does
+                // not keep dead work alive.
                 builder.AllowPassCulling(false);
                 builder.AllowGlobalStateModification(true);
-                // Publish the blurred result as the global the UIRect _USE_BLUR variant samples.
+                // Publish the blurred result as the global the UI/UIRectGlass shader samples.
                 builder.SetGlobalTextureAfterPass(dst, UIRectBlurConstants.BackdropTexID);
 
                 builder.SetRenderFunc((PassData data, UnsafeGraphContext ctx) =>

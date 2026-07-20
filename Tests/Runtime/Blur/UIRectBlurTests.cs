@@ -72,5 +72,46 @@ namespace UIRect.Blur.Tests
             for (int i = 0; i < before; i++)
                 UIRectBlurCore.RegisterProvider();
         }
+
+        [Test]
+        public void BackdropRegistry_Unregister_ClampsAtZero()
+        {
+            int before = UIRectBlurCore.ActiveBackdropCount;
+            for (int i = 0; i < before; i++)
+                UIRectBlurCore.UnregisterBackdrop();
+            UIRectBlurCore.UnregisterBackdrop(); // one extra - must not go negative
+            Assert.AreEqual(0, UIRectBlurCore.ActiveBackdropCount);
+            for (int i = 0; i < before; i++)
+                UIRectBlurCore.RegisterBackdrop();
+        }
+
+        // The providers' early-out hangs off HasWork, so an enabled backdrop must register itself and a
+        // disabled one must release its slot - otherwise blur either does dead work or silently stops.
+        [Test]
+        public void Backdrop_EnabledState_DrivesHasWork()
+        {
+            int before = UIRectBlurCore.ActiveBackdropCount;
+            var go = new GameObject("BackdropRegistryTest", typeof(RectTransform));
+            try
+            {
+                var backdrop = go.AddComponent<UIRectBackdrop>();
+                Assert.AreEqual(before + 1, UIRectBlurCore.ActiveBackdropCount,
+                    "an enabled UIRectBackdrop should register as a consumer");
+                Assert.IsTrue(UIRectBlurCore.HasWork);
+
+                backdrop.enabled = false;
+                Assert.AreEqual(before, UIRectBlurCore.ActiveBackdropCount,
+                    "disabling a UIRectBackdrop should release its consumer slot");
+
+                backdrop.enabled = true;
+                Assert.AreEqual(before + 1, UIRectBlurCore.ActiveBackdropCount);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+            Assert.AreEqual(before, UIRectBlurCore.ActiveBackdropCount,
+                "destroying a UIRectBackdrop should release its consumer slot");
+        }
     }
 }
