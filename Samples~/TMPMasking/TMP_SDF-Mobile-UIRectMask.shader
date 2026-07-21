@@ -226,10 +226,9 @@ SubShader {
 			c += float4(_UnderlayColor.rgb * _UnderlayColor.a, _UnderlayColor.a) * (1 - saturate(d - input.underlayParam.y)) * sd * (1 - c.a);
 			#endif
 
-			// UIRectMask clip. This shader is only ever used under a UIRectMask, so the rounded coverage
-			// fully replaces the base rectangular clip (whose _ClipRect degenerates when the mask is rotated
-			// — it is built from two opposite corners assuming an axis-aligned rect). input.mask.xy ==
-			// 2*(pos - center); the center stays valid under rotation, so reconstruct the canvas-space pos.
+			// UIRectMask clip. Always used under a UIRectMask, so the rounded coverage fully replaces the base
+			// rect clip (whose _ClipRect degenerates when the mask is rotated). input.mask.xy == 2*(pos - center);
+			// the center stays valid under rotation, so reconstruct the clip position the coverage fn expects.
 			#if UNITY_UI_CLIP_RECT
 			float2 uirectClipPos = input.mask.xy * 0.5 + (_ClipRect.xy + _ClipRect.zw) * 0.5;
 			c *= roundedClipCoverage(uirectClipPos);

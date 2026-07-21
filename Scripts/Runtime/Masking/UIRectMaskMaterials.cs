@@ -49,7 +49,7 @@ namespace UIRect
                                       // TMP:    prior fontSharedMaterial.
         }
 
-        private Vector4 _radii = Vector4.zero;
+        private Vector4 _radii;
         private Vector2 _halfSize;
         private Matrix4x4 _clipToLocal = Matrix4x4.identity;
 
@@ -80,15 +80,14 @@ namespace UIRect
         }
 
         /// <summary>
-        /// Re-enables rendering of every clipped child by clearing its CanvasRenderer cull flag. RectMask2D
-        /// culls children through its axis-aligned canvasRect, which is invalid once the mask is rotated (the
-        /// children vanish at the angle where it collapses); the rounded clip does the real visibility test in
-        /// the shader, so the cull must be undone. Called per-clip-phase while the mask is rotated.
+        /// Un-culls every clipped child. RectMask2D's axis-aligned canvasRect collapses when the mask is
+        /// rotated and hard-culls them; the shader does the real visibility test, so undo it. Guarded to only
+        /// write when actually set — an unconditional write re-dirties the CanvasRenderer every clip phase.
         /// </summary>
         public void RenderClippedChildren()
         {
             foreach (var g in _assigned.Keys)
-                if (g != null && g.canvasRenderer != null)
+                if (g != null && g.canvasRenderer != null && g.canvasRenderer.cull)
                     g.canvasRenderer.cull = false;
         }
 

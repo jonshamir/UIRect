@@ -8,16 +8,19 @@ using TMPro;
 namespace UIRect
 {
     /// <summary>
-    /// Clips a UIRect's children to its rounded-rectangle shape with anti-aliased corners — the rounded
-    /// analogue of <see cref="RectMask2D"/>, and opt-in: add this component only where you want rounded
-    /// child masking. It subclasses <see cref="RectMask2D"/>, so the rectangular clip, offscreen-child
-    /// culling and nested-mask rect intersection all come for free; this class only layers the rounded
-    /// corners on top by giving the masked children a clip material (keyword <c>_ROUNDED_CLIP</c>) that
-    /// carries the mask's corner radii.
+    /// Clips a UIRect's children to its rounded-rectangle shape with anti-aliased corners — the rounded,
+    /// rotation-aware analogue of <see cref="RectMask2D"/>. Opt-in: add it only where you want rounded child
+    /// masking. It subclasses <see cref="RectMask2D"/> for the child bookkeeping (target tracking, offscreen
+    /// culling), then gives the masked children a clip material (keyword <c>_ROUNDED_CLIP</c>) that evaluates
+    /// the rounded rect in the mask's local space — so the clip is correct even when the mask is rotated,
+    /// where the base axis-aligned rect clip and its culling are not (both are superseded/undone while rotated).
     ///
     /// Supported children: UIRect (<see cref="IUIRect"/>) and, when TextMeshPro is present, <c>TMP_Text</c>.
     /// Other graphics fall back to base rectangular clipping. See <see cref="UIRectMaskMaterials"/> for the
     /// material assignment / teardown (removing or disabling this component restores children fully).
+    ///
+    /// Limitation: a child is clipped by its nearest UIRectMask only — nested UIRectMask rectangles are not
+    /// intersected for rounded children, since the base rect clip is skipped in the shader.
     /// </summary>
     [AddComponentMenu("UI/UIRect/UIRect Mask")]
     [ExecuteAlways]
@@ -71,28 +74,20 @@ namespace UIRect
             base.PerformClipping();
             if (!isActiveAndEnabled)
                 return;
-            PushClipToMaterials();
 
-            // RectMask2D culls children (and the whole mask) using its canvasRect — built from two opposite
-            // corners assuming an axis-aligned rect, so it collapses when the mask is rotated: its width is
-            // W·cosθ − H·sinθ, hitting zero at θ = atan(W/H), and past that validRect turns false and the
-            // children are hard-culled (they vanish entirely). Our rounded clip already decides visibility
-            // per-fragment in the mask's local space, so once rotated we undo that cull and let the shader do
-            // the clipping. Left intact when unrotated, where RectMask2D's offscreen culling is valid + useful.
-            if (IsRotatedInCanvas())
+            Canvas canvas = ResolveCanvas();
+            PushClipToMaterials(canvas);
+
+            // RectMask2D's canvasRect collapses when the mask is rotated and hard-culls the children; the
+            // shader does the real per-fragment clipping, so undo that cull while rotated.
+            if (canvas != null && IsRotated(canvas))
                 _materials?.RenderClippedChildren();
         }
 
-        // True when this mask is rotated relative to the root canvas, i.e. RectMask2D's axis-aligned
+        // True when this mask is rotated relative to the root canvas — where RectMask2D's axis-aligned
         // canvasRect (and the culling it drives) can no longer be trusted.
-        private bool IsRotatedInCanvas()
-        {
-            Canvas canvas = ResolveCanvas();
-            if (canvas == null)
-                return false;
-            Quaternion rel = Quaternion.Inverse(canvas.rootCanvas.transform.rotation) * transform.rotation;
-            return Quaternion.Angle(rel, Quaternion.identity) > 0.01f;
-        }
+        private bool IsRotated(Canvas canvas) =>
+            Quaternion.Angle(canvas.rootCanvas.transform.rotation, transform.rotation) > 0.01f;
 
 #if UNITY_EDITOR
         protected override void OnValidate()
@@ -182,19 +177,19 @@ namespace UIRect
             }
         }
 
-        private void PushClipToMaterials()
+        private void PushClipToMaterials() => PushClipToMaterials(ResolveCanvas());
+
+        private void PushClipToMaterials(Canvas canvas)
         {
             if (_materials == null) return;
-            var (radii, halfSize, clipToLocal) = ComputeClip();
+            var (radii, halfSize, clipToLocal) = ComputeClip(canvas);
             _materials.PushClip(radii, halfSize, clipToLocal);
         }
 
-        // Describes the mask's rounded rect in its own LOCAL space, plus a matrix that maps a fragment's
-        // canvas-space clip position (the space of _ClipRect and the child vertex position) into that local
-        // frame. Evaluating the clip in local space means it rotates/scales with the mask — a rotated mask
-        // clips its rotated children correctly, unlike the axis-aligned _ClipRect. Returns the INNER radii
-        // (outer minus the border inset, concentric) and inner half-size, both clamped, in local units.
-        private (Vector4 radii, Vector2 halfSize, Matrix4x4 clipToLocal) ComputeClip()
+        // The mask's rounded rect in its own local space — inner radii (outer minus border inset, concentric)
+        // and inner half-size, both clamped — plus a matrix mapping a fragment's clip position into that frame.
+        // Evaluating in local space is what makes the clip rotate/scale with the mask, unlike axis-aligned _ClipRect.
+        private (Vector4 radii, Vector2 halfSize, Matrix4x4 clipToLocal) ComputeClip(Canvas canvas)
         {
             var rt = (RectTransform)transform;
             Rect rect = rt.rect;
@@ -214,12 +209,9 @@ namespace UIRect
                 Mathf.Clamp(inner.z, 0f, maxR),
                 Mathf.Clamp(inner.w, 0f, maxR));
 
-            // Root-canvas-space clip position -> mask local, then recentre on the rect (its centre is the
-            // pivot offset). The child vertex position (shader clipPosition) lives in the ROOT canvas's local
-            // space — the same space RectMask2D builds _ClipRect in (Canvas.rootCanvas.InverseTransformPoint).
-            // With no canvas the vertex position is already mask-local, so only the recentre applies.
+            // clipPosition lives in root-canvas-local space (the space RectMask2D builds _ClipRect in). Map it
+            // to mask-local and recentre on the rect. No canvas -> the vertex position is already mask-local.
             Matrix4x4 recentre = Matrix4x4.Translate(new Vector3(-rect.center.x, -rect.center.y, 0f));
-            Canvas canvas = ResolveCanvas();
             Matrix4x4 clipToLocal = canvas != null
                 ? recentre * rt.worldToLocalMatrix * canvas.rootCanvas.transform.localToWorldMatrix
                 : recentre;

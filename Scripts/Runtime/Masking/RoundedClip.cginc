@@ -1,15 +1,8 @@
-// Shared rounded-rectangle clip used by UIRectMask. Included by UI/UIRect and by the
-// forked TMP masking shader, so the clip math lives in exactly one place.
-//
-// The clip is evaluated in the MASK'S LOCAL space: the host passes in the fragment's canvas-space
-// position (the same space as the CanvasRenderer-fed `_ClipRect`), which we transform into the
-// mask's local rect frame via `_ClipToLocal`. Because that frame rotates with the mask, the rounded
-// corners rotate too — unlike the axis-aligned `_ClipRect`, which only ever bounds the AABB. The host
-// declares `_ClipRect` (used by the base rect clip); this file adds the local-space uniforms below,
-// pushed per-mask by UIRectMask (see UIRectMaskMaterials).
-//
-// Pulls in only sdgRoundedBox (SDF.cginc, guarded + SM2-safe), not the asuint packing helpers,
-// so it stays usable from the mobile TMP shader.
+// Shared rounded-rectangle clip used by UIRectMask, included by UI/UIRect and the forked TMP masking
+// shader so the clip math lives in one place. Evaluated in the mask's LOCAL space: the host passes the
+// fragment's clip position, which `_ClipToLocal` maps into the mask's rect frame — so the clip rotates
+// with the mask, unlike the axis-aligned `_ClipRect`. Uniforms below are pushed per-mask by UIRectMask
+// (see UIRectMaskMaterials). Pulls in only sdgRoundedBox (SM2-safe), so it stays usable from mobile TMP.
 #ifndef UIRECT_ROUNDED_CLIP_INCLUDED
 #define UIRECT_ROUNDED_CLIP_INCLUDED
 

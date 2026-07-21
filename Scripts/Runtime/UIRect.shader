@@ -156,10 +156,8 @@ Shader "UI/UIRect"
                 // Clip coverage (rect + optional rounded). Applied to the FINAL composited alpha at each
                 // return below, so borders/shadows/bevels are clipped too — not just the fill.
                 float clipCoverage = 1.0;
-                // The rounded clip (UIRectMask) fully bounds the content in the mask's local space, so it
-                // supersedes the base rect clip. We must skip the latter then: RectMask2D's _ClipRect is
-                // built from two opposite world corners assuming an axis-aligned rect, so it collapses to a
-                // degenerate sliver when the mask is rotated — multiplying it in would re-clip axis-aligned.
+                // The rounded clip supersedes the base rect clip, whose _ClipRect degenerates to an
+                // axis-aligned sliver when the mask is rotated — so skip it when _ROUNDED_CLIP is on.
                 #if defined(UNITY_UI_CLIP_RECT) && !defined(_ROUNDED_CLIP)
                 clipCoverage *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
                 #endif
