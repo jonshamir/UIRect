@@ -1,6 +1,5 @@
-// Rounded-rectangle signed distance field, split out of Utils.cginc so it can be shared by the
-// masking clip (RoundedClip.cginc) without dragging in the asuint-based packing helpers — those
-// need SM4+, but this function is plain float math and stays mobile/low-target safe.
+// Rounded-rectangle SDF, split out of Utils.cginc so the masking clip (RoundedClip.cginc) can use
+// it without the asuint-based packing helpers, which need SM4+.
 #ifndef UIRECT_SDF_INCLUDED
 #define UIRECT_SDF_INCLUDED
 

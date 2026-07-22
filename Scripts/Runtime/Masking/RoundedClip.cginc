@@ -1,8 +1,6 @@
 // Shared rounded-rectangle clip used by UIRectMask, included by UI/UIRect and the forked TMP masking
-// shader so the clip math lives in one place. Evaluated in the mask's LOCAL space: the host passes the
-// fragment's clip position, which `_ClipToLocal` maps into the mask's rect frame — so the clip rotates
-// with the mask, unlike the axis-aligned `_ClipRect`. Uniforms below are pushed per-mask by UIRectMask
-// (see UIRectMaskMaterials). Pulls in only sdgRoundedBox (SM2-safe), so it stays usable from mobile TMP.
+// shader. Evaluated in the mask's LOCAL space, so the clip rotates with the mask — unlike the
+// axis-aligned `_ClipRect`. Pulls in only sdgRoundedBox (SM2-safe), so it stays usable from mobile TMP.
 #ifndef UIRECT_ROUNDED_CLIP_INCLUDED
 #define UIRECT_ROUNDED_CLIP_INCLUDED
 
@@ -20,7 +18,7 @@ float2 _ClipRectHalfSize;
 float4x4 _ClipToLocal;
 
 // Coverage of `clipPos` (canvas space) against the mask's rounded rect: 1 fully inside, 0 fully
-// outside, with a 1px anti-aliased edge (matching UIRect's own SDF antialiasing). Multiply alpha by this.
+// outside, with a ~1px anti-aliased edge. Multiply alpha by this.
 float roundedClipCoverage(float2 clipPos)
 {
     float2 local = mul(_ClipToLocal, float4(clipPos, 0.0, 1.0)).xy;

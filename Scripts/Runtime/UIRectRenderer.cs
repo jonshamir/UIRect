@@ -52,39 +52,62 @@ namespace UIRect
             if (material != null)
                 return material;
 
-            _shader ??= Shader.Find(SHADER_NAME);
-            if (_shader == null)
-            {
-                // Missing in headless editors / shader-stripped players. Fall back uncached: a
-                // later Find can still win, and the shared material must never be destroyed.
-                if (!_warnedMissingShader)
-                {
-                    _warnedMissingShader = true;
-                    Debug.LogWarning($"UIRect: shader \"{SHADER_NAME}\" not found; falling back to the default UI material.");
-                }
+            material = CreateMaterial(useBevel);
+            if (material == null)
+                // Fall back uncached: a later Find can still win, and the shared material
+                // must never be destroyed.
                 return Canvas.GetDefaultCanvasMaterial();
-            }
-            material = new Material(_shader);
-            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
+
             _materials[index] = material;
             return material;
         }
 
         /// <summary>
         /// Creates a NEW, caller-owned UIRect material with the rounded child-clip (<c>_ROUNDED_CLIP</c>)
-        /// keyword enabled. Used only by <see cref="UIRectMask"/>: each mask owns its clip materials (they
-        /// carry that mask's <c>_ClipRectRadii</c>) and must Destroy them on teardown. Deliberately not
-        /// cached — radii are per-mask, so these must not be shared via <see cref="GetMaterial"/>. The
-        /// default (non-masking) path is untouched, so unmasked UIRects never enable the keyword.
+        /// keyword enabled; the caller must Destroy it on teardown. Deliberately not cached — the clip
+        /// uniforms are per-mask, so these must not be shared via <see cref="GetMaterial"/>.
+        /// Returns null when the shader is missing.
         /// </summary>
         public static Material CreateMaskMaterial(bool useBevel)
         {
-            _shader ??= Shader.Find(SHADER_NAME);
+            Material material = CreateMaterial(useBevel);
+            if (material == null)
+                return null;
 
-            var material = new Material(_shader) { hideFlags = HideFlags.HideAndDontSave };
-            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
+            material.hideFlags = HideFlags.HideAndDontSave;
             material.SetKeyword(new LocalKeyword(_shader, KEYWORD_ROUNDED_CLIP), true);
             return material;
+        }
+
+        // Resolves the shader (warning once when missing in headless editors / shader-stripped
+        // players) and creates a material with the bevel keyword set. Null when the shader is missing.
+        private static Material CreateMaterial(bool useBevel)
+        {
+            _shader ??= Shader.Find(SHADER_NAME);
+            if (_shader == null)
+            {
+                if (!_warnedMissingShader)
+                {
+                    _warnedMissingShader = true;
+                    Debug.LogWarning($"UIRect: shader \"{SHADER_NAME}\" not found; falling back to the default UI material.");
+                }
+                return null;
+            }
+
+            var material = new Material(_shader);
+            material.SetKeyword(new LocalKeyword(_shader, KEYWORD_BEVELS), useBevel);
+            return material;
+        }
+
+        /// <summary>Destroys a material safely in both play and edit mode. Null is ignored.</summary>
+        internal static void DestroyMaterial(Material material)
+        {
+            if (material == null)
+                return;
+            if (Application.isPlaying)
+                UnityEngine.Object.Destroy(material);
+            else
+                UnityEngine.Object.DestroyImmediate(material);
         }
 
         // Clears the cache before domain reload / on quit; it rebuilds lazily. The shader is
@@ -93,14 +116,7 @@ namespace UIRect
         {
             for (int i = 0; i < _materials.Length; i++)
             {
-                var material = _materials[i];
-                if (material != null)
-                {
-                    if (Application.isPlaying)
-                        UnityEngine.Object.Destroy(material);
-                    else
-                        UnityEngine.Object.DestroyImmediate(material);
-                }
+                DestroyMaterial(_materials[i]);
                 _materials[i] = null;
             }
             _shader = null;

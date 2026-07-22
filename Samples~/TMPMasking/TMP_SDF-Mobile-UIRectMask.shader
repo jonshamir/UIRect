@@ -3,14 +3,8 @@
 //   * the shader name (so UIRectMaskMaterials can Shader.Find it and swap masked text onto it),
 //   * a _ClipRectRadii property + RoundedClip.cginc include,
 //   * one extra line in PixShader multiplying alpha by the rounded coverage.
-//
-// Shipped as an OPT-IN package sample ("TextMeshPro Masking") rather than an always-compiled package
-// asset, so a project without TextMeshPro (or without TMP Essentials imported) never sees a shader
-// compile error. Import it via Package Manager > UIRect > Samples to enable rounded masking of TMP text.
-//
-// Includes are project-root-relative so they resolve wherever this sample is imported:
-//   * RoundedClip.cginc from the always-installed UIRect package,
-//   * TMPro_Properties.cginc from the default TMP Essentials location (adjust if yours differ).
+// Shipped as an opt-in sample so projects without TMP Essentials never compile it. The
+// TMPro_Properties.cginc include assumes the default TMP Essentials location (adjust if yours differs).
 Shader "TextMeshPro/Mobile/Distance Field UIRect Mask" {
 
 Properties {

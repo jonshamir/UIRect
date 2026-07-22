@@ -61,8 +61,7 @@ Shader "UI/UIRect"
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
             #pragma multi_compile_local __ _USE_BEVELS
-            // Rounded child-masking (UIRectMask). shader_feature (not multi_compile) so the variant
-            // is stripped from builds that never enable it — zero cost when masking is unused.
+            // shader_feature so the UIRectMask variant is stripped from builds that never use masking.
             #pragma shader_feature_local __ _ROUNDED_CLIP
 
             // Precomputed constants
@@ -107,8 +106,7 @@ Shader "UI/UIRect"
             float4 _ClipRect;
             float4 _MainTex_ST;
 
-            // After _ClipRect so roundedClipCoverage() sees it (adds _ClipRectRadii + the clip fn).
-            #include "Masking/RoundedClip.cginc"
+            #include "Masking/RoundedClip.cginc"  // roundedClipCoverage() + its uniforms
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
@@ -156,8 +154,7 @@ Shader "UI/UIRect"
                 // Clip coverage (rect + optional rounded). Applied to the FINAL composited alpha at each
                 // return below, so borders/shadows/bevels are clipped too — not just the fill.
                 float clipCoverage = 1.0;
-                // The rounded clip supersedes the base rect clip, whose _ClipRect degenerates to an
-                // axis-aligned sliver when the mask is rotated — so skip it when _ROUNDED_CLIP is on.
+                // The rounded clip replaces the rect clip, whose _ClipRect degenerates when the mask is rotated.
                 #if defined(UNITY_UI_CLIP_RECT) && !defined(_ROUNDED_CLIP)
                 clipCoverage *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
                 #endif
@@ -209,6 +206,7 @@ Shader "UI/UIRect"
                     float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
 
                     color.a *= (1 - coverage) * insideMask;
+                    color.a *= clipCoverage;
                     return color;
                 }
 

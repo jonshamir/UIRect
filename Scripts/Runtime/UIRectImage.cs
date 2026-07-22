@@ -78,9 +78,7 @@ namespace UIRect
         #region Rendering
 
         // The shared rounded-rect material (see UIRectRenderer)
-        public override Material defaultMaterial => UIRectRenderer.GetMaterial(UseBevel);
-
-        private bool UseBevel => Mathf.Min(bevelWidth, bevelStrength) > 0;
+        public override Material defaultMaterial => UIRectRenderer.GetMaterial(this.UsesBevel());
 
         // Edits the UI vertices with the data read on the GPU (see UIRectRenderer)
         protected override void OnPopulateMesh(VertexHelper vh)

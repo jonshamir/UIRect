@@ -12,11 +12,9 @@ namespace UIRect
     /// to — and restoring them from — the masked children. Split out of <see cref="UIRectMask"/> so the
     /// material bookkeeping (plus the optional TextMeshPro glue) lives in one place.
     ///
-    /// All children under one mask share the mask's <c>_ClipRect</c>/<c>_ClipRectRadii</c>, so they can
-    /// share one material per variant and keep batching together; only *different* masks break a batch.
-    /// Every material created here is <see cref="HideFlags.HideAndDontSave"/> and destroyed in
-    /// <see cref="Dispose"/>, and every child's prior material is restored — so toggling a mask off (or
-    /// removing it) leaves zero residue.
+    /// All children under one mask share the same clip uniforms, so they share one material per variant
+    /// and keep batching together; only *different* masks break a batch. Every material created here is
+    /// <see cref="HideFlags.HideAndDontSave"/> and torn down in <see cref="Dispose"/>.
     /// </summary>
     internal sealed class UIRectMaskMaterials
     {
@@ -41,6 +39,7 @@ namespace UIRect
         // What we assigned, so we can restore the exact prior material when a child leaves or on teardown.
         private readonly Dictionary<Graphic, Assignment> _assigned = new();
         private static readonly List<Graphic> _scratch = new();
+        private static readonly HashSet<Graphic> _targetSet = new();
 
         private struct Assignment
         {
@@ -55,11 +54,14 @@ namespace UIRect
 
         /// <summary>
         /// Pushes the mask's local-space rounded rect (inner radii + half-size) and the canvas→mask-local
-        /// clip matrix onto every owned material (cheap, no dirtying). Evaluating in local space is what
-        /// lets a rotated mask clip its rotated children (see <see cref="UIRectMask"/>.ComputeClip).
+        /// clip matrix onto every owned material (cheap, no dirtying). No-op when nothing changed, so a
+        /// static mask costs nothing per clip phase.
         /// </summary>
         public void PushClip(Vector4 localRadii, Vector2 localHalfSize, Matrix4x4 clipToLocal)
         {
+            if (localRadii == _radii && localHalfSize == _halfSize && clipToLocal == _clipToLocal)
+                return;
+
             _radii = localRadii;
             _halfSize = localHalfSize;
             _clipToLocal = clipToLocal;
@@ -80,9 +82,8 @@ namespace UIRect
         }
 
         /// <summary>
-        /// Un-culls every clipped child. RectMask2D's axis-aligned canvasRect collapses when the mask is
-        /// rotated and hard-culls them; the shader does the real visibility test, so undo it. Guarded to only
-        /// write when actually set — an unconditional write re-dirties the CanvasRenderer every clip phase.
+        /// Un-culls every clipped child (see <see cref="UIRectMask"/>.PerformClipping). Guarded per child —
+        /// an unconditional write would re-dirty the CanvasRenderer every clip phase.
         /// </summary>
         public void RenderClippedChildren()
         {
@@ -92,8 +93,9 @@ namespace UIRect
         }
 
         /// <summary>
-        /// Ensures exactly the graphics in <paramref name="targets"/> wear this mask's clip material, and
-        /// restores any previously-assigned graphic that is no longer a target. Safe to call repeatedly.
+        /// Ensures exactly the supported graphics in <paramref name="targets"/> wear this mask's clip
+        /// material, and restores any previously-assigned graphic that is no longer a target.
+        /// Unsupported graphic types are left on the base rectangular clip. Safe to call repeatedly.
         /// </summary>
         public void Sync(List<Graphic> targets)
         {
@@ -101,16 +103,17 @@ namespace UIRect
                 if (g != null)
                     Assign(g);
 
-            if (_assigned.Count == targets.Count)
-                return;
-
             // Restore graphics that dropped out of the target set.
+            _targetSet.Clear();
+            foreach (var g in targets)
+                _targetSet.Add(g);
             _scratch.Clear();
             foreach (var kv in _assigned)
-                if (!targets.Contains(kv.Key))
+                if (!_targetSet.Contains(kv.Key))
                     _scratch.Add(kv.Key);
             foreach (var g in _scratch)
                 Restore(g);
+            _targetSet.Clear();
         }
 
         private void Assign(Graphic g)
@@ -120,7 +123,7 @@ namespace UIRect
                 // Already assigned — only UIRect children can change variant (bevel toggled at runtime).
                 if (!existing.isTmp && g is IUIRect u)
                 {
-                    Material want = GetUIRectMaterial(UsesBevel(u));
+                    Material want = GetUIRectMaterial(u.UsesBevel());
                     if (!ReferenceEquals(g.material, want))
                         g.material = want;
                 }
@@ -136,7 +139,7 @@ namespace UIRect
 
         private void AssignUIRect(Graphic g, IUIRect uir)
         {
-            Material owned = GetUIRectMaterial(UsesBevel(uir));
+            Material owned = GetUIRectMaterial(uir.UsesBevel());
             Material original = ReferenceEquals(g.material, g.defaultMaterial) ? null : g.material;
             g.material = owned;
             _assigned[g] = new Assignment { isTmp = false, original = original };
@@ -144,25 +147,14 @@ namespace UIRect
 
         private Material GetUIRectMaterial(bool useBevel)
         {
-            if (useBevel)
+            ref Material slot = ref useBevel ? ref _uiRectBevel : ref _uiRectNoBevel;
+            if (slot == null)
             {
-                if (_uiRectBevel == null)
-                {
-                    _uiRectBevel = UIRectRenderer.CreateMaskMaterial(true);
-                    Apply(_uiRectBevel);
-                }
-                return _uiRectBevel;
+                slot = UIRectRenderer.CreateMaskMaterial(useBevel);
+                Apply(slot);
             }
-
-            if (_uiRectNoBevel == null)
-            {
-                _uiRectNoBevel = UIRectRenderer.CreateMaskMaterial(false);
-                Apply(_uiRectNoBevel);
-            }
-            return _uiRectNoBevel;
+            return slot;
         }
-
-        private static bool UsesBevel(IUIRect r) => Mathf.Min(r.BevelWidth, r.BevelStrength) > 0f;
 
 #if UIRECT_TMP
         private static bool _warnedNoTmpShader;
@@ -175,8 +167,6 @@ namespace UIRect
 
             if (TmpMaskShader == null)
             {
-                // The optional TMP masking shader lives in a package sample so a no-TMP project never
-                // compiles it. Without it, TMP children fall back to base rectangular clipping.
                 if (!_warnedNoTmpShader)
                 {
                     _warnedNoTmpShader = true;
@@ -194,7 +184,9 @@ namespace UIRect
                 _tmpClones[src] = clone;
             }
 
-            tmp.fontMaterial = clone; // the instance material TMP renders with
+            // Shared (not fontMaterial, which instances a copy) so PushClip updates reach every text
+            // and same-font texts keep batching.
+            tmp.fontSharedMaterial = clone;
             _assigned[tmp] = new Assignment { isTmp = true, original = src };
         }
 #endif
@@ -221,33 +213,20 @@ namespace UIRect
         public void Dispose()
         {
             _scratch.Clear();
-            foreach (var kv in _assigned)
-                _scratch.Add(kv.Key);
+            _scratch.AddRange(_assigned.Keys);
             foreach (var g in _scratch)
                 Restore(g);
             _assigned.Clear();
 
-            DestroySafe(ref _uiRectNoBevel);
-            DestroySafe(ref _uiRectBevel);
+            UIRectRenderer.DestroyMaterial(_uiRectNoBevel);
+            UIRectRenderer.DestroyMaterial(_uiRectBevel);
+            _uiRectNoBevel = null;
+            _uiRectBevel = null;
 #if UIRECT_TMP
             foreach (var clone in _tmpClones.Values)
-            {
-                Material c = clone;
-                DestroySafe(ref c);
-            }
+                UIRectRenderer.DestroyMaterial(clone);
             _tmpClones.Clear();
 #endif
-        }
-
-        private static void DestroySafe(ref Material material)
-        {
-            if (material == null)
-                return;
-            if (Application.isPlaying)
-                Object.Destroy(material);
-            else
-                Object.DestroyImmediate(material);
-            material = null;
         }
     }
 }

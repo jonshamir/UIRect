@@ -1,23 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-#if UIRECT_TMP
-using TMPro;
-#endif
 
 namespace UIRect
 {
     /// <summary>
     /// Clips a UIRect's children to its rounded-rectangle shape with anti-aliased corners — the rounded,
-    /// rotation-aware analogue of <see cref="RectMask2D"/>. Opt-in: add it only where you want rounded child
-    /// masking. It subclasses <see cref="RectMask2D"/> for the child bookkeeping (target tracking, offscreen
-    /// culling), then gives the masked children a clip material (keyword <c>_ROUNDED_CLIP</c>) that evaluates
-    /// the rounded rect in the mask's local space — so the clip is correct even when the mask is rotated,
-    /// where the base axis-aligned rect clip and its culling are not (both are superseded/undone while rotated).
-    ///
-    /// Supported children: UIRect (<see cref="IUIRect"/>) and, when TextMeshPro is present, <c>TMP_Text</c>.
-    /// Other graphics fall back to base rectangular clipping. See <see cref="UIRectMaskMaterials"/> for the
-    /// material assignment / teardown (removing or disabling this component restores children fully).
+    /// rotation-aware analogue of <see cref="RectMask2D"/>. Subclasses <see cref="RectMask2D"/> for the child
+    /// bookkeeping, then gives supported children (UIRect, and TMP_Text when TextMeshPro is present) a clip
+    /// material (keyword <c>_ROUNDED_CLIP</c>) that evaluates the rounded rect in the mask's local space, so
+    /// the clip stays correct when the mask is rotated — where the base axis-aligned rect clip and its culling
+    /// are not. Other graphics fall back to base rectangular clipping; see <see cref="UIRectMaskMaterials"/>
+    /// for material assignment / teardown.
     ///
     /// Limitation: a child is clipped by its nearest UIRectMask only — nested UIRectMask rectangles are not
     /// intersected for rounded children, since the base rect clip is skipped in the shader.
@@ -27,14 +21,14 @@ namespace UIRect
     [DisallowMultipleComponent]
     public class UIRectMask : RectMask2D
     {
-        [Tooltip("Corner radii (TL, TR, BR, BL) used when there is no UIRect on this GameObject to read " +
-                 "them from. If a UIRectImage/UIRectRawImage sibling exists, its radius is used instead.")]
         public bool independentCorners = false;
+        [Tooltip("Fallback corner radii (TL, TR, BR, BL); a UIRect on this GameObject supplies them instead.")]
         public Vector4 radius = new(15, 15, 15, 15);
 
         private UIRectMaskMaterials _materials;
         private IUIRect _sibling;
-        private bool _siblingResolved;
+        private Canvas _canvas;
+        private bool _childrenDirty;
 
         private static readonly List<MaskableGraphic> _maskables = new();
         private static readonly List<Graphic> _targets = new();
@@ -44,9 +38,9 @@ namespace UIRect
         protected override void OnEnable()
         {
             base.OnEnable();
-            _siblingResolved = false;
-            _materials ??= new UIRectMaskMaterials();
-            SyncNow();
+            _sibling = GetComponent<IUIRect>();
+            _canvas = null;
+            RefreshMask();
         }
 
         protected override void OnDisable()
@@ -55,17 +49,22 @@ namespace UIRect
             _materials?.Dispose(); // restores every child, destroys owned materials
         }
 
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            _materials?.Dispose();
-        }
-
-        // New direct children (the common "add content under the mask" case) get their clip material here.
         private void OnTransformChildrenChanged()
         {
-            if (isActiveAndEnabled)
-                SyncNow();
+            // Debounced: a reparent burst fires this once per child; sync once in the next clip phase.
+            _childrenDirty = true;
+        }
+
+        protected override void OnTransformParentChanged()
+        {
+            base.OnTransformParentChanged();
+            _canvas = null;
+        }
+
+        protected override void OnCanvasHierarchyChanged()
+        {
+            base.OnCanvasHierarchyChanged();
+            _canvas = null;
         }
 
         // Called during the canvas clip phase, right where the base updates _ClipRect — so the rounded
@@ -76,28 +75,34 @@ namespace UIRect
             if (!isActiveAndEnabled)
                 return;
 
+            if (_childrenDirty)
+            {
+                _childrenDirty = false;
+                SyncTargets();
+            }
+
             Canvas canvas = ResolveCanvas();
-            PushClipToMaterials(canvas);
+            Canvas rootCanvas = canvas != null ? canvas.rootCanvas : null;
+            PushClipToMaterials(rootCanvas);
 
             // RectMask2D's canvasRect collapses when the mask is rotated and hard-culls the children; the
             // shader does the real per-fragment clipping, so undo that cull while rotated.
-            if (canvas != null && IsRotated(canvas))
+            if (rootCanvas != null && IsRotated(rootCanvas))
                 _materials?.RenderClippedChildren();
         }
 
-        // True when this mask is rotated relative to the root canvas — where RectMask2D's axis-aligned
-        // canvasRect (and the culling it drives) can no longer be trusted.
-        private bool IsRotated(Canvas canvas) =>
-            Quaternion.Angle(canvas.rootCanvas.transform.rotation, transform.rotation) > 0.01f;
+        // Rotated relative to the root canvas — where the base axis-aligned clip breaks down.
+        private bool IsRotated(Canvas rootCanvas) =>
+            Quaternion.Angle(rootCanvas.transform.rotation, transform.rotation) > 0.01f;
 
 #if UNITY_EDITOR
         protected override void OnValidate()
         {
             base.OnValidate();
-            // Editing the fallback radius in the inspector: SetVector/SetFloat are safe here (no rebuild),
-            // so just refresh. Structural/material changes are handled by OnEnable / OnTransformChildrenChanged.
+            // SetVector/SetMatrix are safe here (no rebuild); structural changes go through
+            // OnEnable / OnTransformChildrenChanged.
             if (isActiveAndEnabled)
-                PushClipToMaterials();
+                PushClipToMaterials(RootCanvas());
         }
 #endif
 
@@ -106,13 +111,17 @@ namespace UIRect
         #region Target sync
 
         /// <summary>
-        /// Re-scans children and refreshes clip-material assignments now. Called automatically on enable
-        /// and when direct children change; call it manually after adding masked content deeper than a
-        /// direct child, or after changing a child's bevel at runtime.
+        /// Re-scans children and refreshes clip-material assignments. Runs automatically on enable and when
+        /// direct children change; call after adding masked content deeper in the hierarchy, or after
+        /// changing a child's bevel at runtime.
         /// </summary>
-        public void RefreshMask() => SyncNow();
+        public void RefreshMask()
+        {
+            SyncTargets();
+            PushClipToMaterials(RootCanvas());
+        }
 
-        private void SyncNow()
+        private void SyncTargets()
         {
             _materials ??= new UIRectMaskMaterials();
 
@@ -121,76 +130,49 @@ namespace UIRect
             for (int i = 0; i < _maskables.Count; i++)
             {
                 MaskableGraphic mg = _maskables[i];
-                if (mg == null) continue;
                 if (mg.transform == transform) continue;                      // the mask's own boundary graphic
-                if (!IsSupported(mg)) continue;                               // only UIRect / TMP
                 if (mg.GetComponentInParent<UIRectMask>() != this) continue;  // under a nested UIRectMask
                 _targets.Add(mg);
             }
 
             _materials.Sync(_targets);
-            PushClipToMaterials();
-        }
-
-        private static bool IsSupported(Graphic g)
-        {
-            if (g is IUIRect) return true;
-#if UIRECT_TMP
-            if (g is TMP_Text) return true;
-#endif
-            return false;
         }
 
         #endregion
 
         #region Radii
 
-        private IUIRect SiblingRect
-        {
-            get
-            {
-                if (_siblingResolved) return _sibling;
-                _sibling = GetComponent<IUIRect>();
-                _siblingResolved = true;
-                return _sibling;
-            }
-        }
-
         // Prefer the sibling UIRect's radius (single source of truth; animates via UIRectAnimator);
         // fall back to the serialized field for a standalone mask.
-        private Vector4 SourceRadii => SiblingRect != null ? SiblingRect.Radius : radius;
+        private Vector4 SourceRadii => _sibling != null ? _sibling.Radius : radius;
 
         // Local-space inset that keeps children inside the parent UIRect's border, so the border frames them
-        // ("on top"): an Inside border insets by its full width, Middle by half, Outside not at all. 0 when
-        // there is no border / no sibling UIRect.
+        // ("on top"): an Inside border insets by its full width, Middle by half, Outside not at all.
         private float BorderInsetLocal
         {
             get
             {
-                if (SiblingRect == null) return 0f;
-                float factor = SiblingRect.BorderAlignment switch
+                if (_sibling == null) return 0f;
+                float factor = _sibling.BorderAlignment switch
                 {
                     BorderAlign.Inside => 1f,
                     BorderAlign.Middle => 0.5f,
                     _ => 0f, // Outside
                 };
-                return Mathf.Max(SiblingRect.BorderWidth, 0f) * factor;
+                return Mathf.Max(_sibling.BorderWidth, 0f) * factor;
             }
         }
 
-        private void PushClipToMaterials() => PushClipToMaterials(ResolveCanvas());
-
-        private void PushClipToMaterials(Canvas canvas)
+        private void PushClipToMaterials(Canvas rootCanvas)
         {
             if (_materials == null) return;
-            var (radii, halfSize, clipToLocal) = ComputeClip(canvas);
+            var (radii, halfSize, clipToLocal) = ComputeClip(rootCanvas);
             _materials.PushClip(radii, halfSize, clipToLocal);
         }
 
         // The mask's rounded rect in its own local space — inner radii (outer minus border inset, concentric)
         // and inner half-size, both clamped — plus a matrix mapping a fragment's clip position into that frame.
-        // Evaluating in local space is what makes the clip rotate/scale with the mask, unlike axis-aligned _ClipRect.
-        private (Vector4 radii, Vector2 halfSize, Matrix4x4 clipToLocal) ComputeClip(Canvas canvas)
+        private (Vector4 radii, Vector2 halfSize, Matrix4x4 clipToLocal) ComputeClip(Canvas rootCanvas)
         {
             var rt = (RectTransform)transform;
             Rect rect = rt.rect;
@@ -204,27 +186,31 @@ namespace UIRect
             // Inner radii = outer minus the border inset (concentric), clamped to half the inner short side.
             float maxR = Mathf.Min(halfW, halfH);
             Vector4 inner = SourceRadii - Vector4.one * insetLocal;
-            var radii = new Vector4(
-                Mathf.Clamp(inner.x, 0f, maxR),
-                Mathf.Clamp(inner.y, 0f, maxR),
-                Mathf.Clamp(inner.z, 0f, maxR),
-                Mathf.Clamp(inner.w, 0f, maxR));
+            Vector4 radii = Vector4.Min(Vector4.Max(inner, Vector4.zero), Vector4.one * maxR);
 
             // clipPosition lives in root-canvas-local space (the space RectMask2D builds _ClipRect in). Map it
             // to mask-local and recentre on the rect. No canvas -> the vertex position is already mask-local.
             Matrix4x4 recentre = Matrix4x4.Translate(new Vector3(-rect.center.x, -rect.center.y, 0f));
-            Matrix4x4 clipToLocal = canvas != null
-                ? recentre * rt.worldToLocalMatrix * canvas.rootCanvas.transform.localToWorldMatrix
+            Matrix4x4 clipToLocal = rootCanvas != null
+                ? recentre * rt.worldToLocalMatrix * rootCanvas.transform.localToWorldMatrix
                 : recentre;
 
             return (radii, new Vector2(halfW, halfH), clipToLocal);
         }
 
+        private Canvas RootCanvas()
+        {
+            Canvas canvas = ResolveCanvas();
+            return canvas != null ? canvas.rootCanvas : null;
+        }
+
         private Canvas ResolveCanvas()
         {
-            if (SiblingRect is Graphic g && g.canvas != null)
-                return g.canvas;
-            return GetComponentInParent<Canvas>();
+            if (_sibling is Graphic g && g.canvas != null)
+                return g.canvas; // Graphic caches its canvas; use it as a fast path
+            if (_canvas == null)
+                _canvas = GetComponentInParent<Canvas>();
+            return _canvas;
         }
 
         #endregion

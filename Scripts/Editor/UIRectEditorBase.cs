@@ -49,11 +49,28 @@ namespace UIRect
         private static readonly GUIContent _trGlyph = new("┐", "Top-right");
         private static readonly GUIContent _blGlyph = new("└", "Bottom-left");
         private static readonly GUIContent _brGlyph = new("┘", "Bottom-right");
+        private static readonly GUIContent _cornerRadiusLabel = new("Corner Radius");
+
+        // The extra UV channels the UIRect shader packs style data into.
+        private const AdditionalCanvasShaderChannels RequiredChannels =
+            AdditionalCanvasShaderChannels.TexCoord1 |
+            AdditionalCanvasShaderChannels.TexCoord2 |
+            AdditionalCanvasShaderChannels.TexCoord3;
+
+        /// <summary>Shows a HelpBox when <paramref name="canvas"/> is null or missing the additional
+        /// shader channels UIRect graphics need. Shared by all UIRect inspectors.</summary>
+        public static void DrawShaderChannelWarning(Canvas canvas, MessageType severity)
+        {
+            if (canvas != null && (canvas.additionalShaderChannels & RequiredChannels) == RequiredChannels)
+                return;
+            EditorGUILayout.HelpBox("Enable \"TexCoord1\", \"TexCoord2\" and \"TexCoord3\" in the Canvas' " +
+                                    "\"Additional Shader Channels\" so UIRect graphics render correctly.", severity);
+        }
 
         /// <summary>
-        /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a single
-        /// uniform radius and four per-corner fields laid out as the physical corners, with the glyphs turned
-        /// inward so ┌┐└┘ meet as a little square between the columns. Values clamped to >= 0. Reused by UIRectMask.
+        /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a
+        /// single uniform radius and four per-corner fields laid out as the physical corners. Values
+        /// clamped to >= 0. Reused by UIRectMask.
         /// </summary>
         public static void DrawCornerRadius(SerializedProperty independentCorners, SerializedProperty radius)
         {
@@ -67,7 +84,7 @@ namespace UIRect
 
             // radius packs x=TL, y=TR, z=BR, w=BL. Left column keeps its glyph on the right, right column on the
             // left, so the four glyphs face each other in the middle.
-            Rect row1 = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent("Corner Radius"));
+            Rect row1 = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), _cornerRadiusLabel);
             Rect row2 = EditorGUILayout.GetControlRect();
             row2 = new(row1.x, row2.y, row1.width, row2.height);
 
@@ -145,14 +162,7 @@ namespace UIRect
             serializedObject.Update();
 
             var graphic = (Graphic)target;
-            if (graphic.canvas == null ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord1) ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord2) ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord3))
-            {
-                EditorGUILayout.HelpBox("Make sure that \"TexCoord1\", \"TexCoord2\" and \"TexCoord3\" are enabled" +
-                                        " in \"Additional Shader Channels\" on the Canvas", MessageType.Error, true);
-            }
+            DrawShaderChannelWarning(graphic.canvas, MessageType.Error);
 
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(_color, new GUIContent("Tint Color"));
@@ -296,8 +306,10 @@ namespace UIRect
 
         #region Menu creation
 
-        /// <summary>Shared "GameObject/UI/..." factory used by the UIRectImage and UIRectRawImage menu items.</summary>
-        protected static void CreateUIRectObject<T>(string name, MenuCommand menuCommand) where T : Graphic
+        /// <summary>Shared "GameObject/UI/..." factory used by the UIRect menu items. Returns the
+        /// created object so callers can add extra components (still covered by the undo entry).</summary>
+        internal static GameObject CreateUIRectObject<T>(string name, MenuCommand menuCommand, float size = 100f)
+            where T : Graphic
         {
             GameObject go = new GameObject(name);
             go.AddComponent<T>();
@@ -315,10 +327,11 @@ namespace UIRect
             GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject ?? canvas.gameObject);
 
             RectTransform rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(100, 100);
+            rt.sizeDelta = new Vector2(size, size);
 
             Undo.RegisterCreatedObjectUndo(go, "Create " + name);
             Selection.activeObject = go;
+            return go;
         }
 
         #endregion
