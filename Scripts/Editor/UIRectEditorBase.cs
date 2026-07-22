@@ -45,22 +45,41 @@ namespace UIRect
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
 
+        private static readonly GUIContent[] _topCornerLabels = { new("TL"), new("TR") };
+        private static readonly GUIContent[] _bottomCornerLabels = { new("BL"), new("BR") };
+        private static readonly float[] _topCorners = new float[2];
+        private static readonly float[] _bottomCorners = new float[2];
+
         /// <summary>
         /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a single
-        /// uniform radius and four per-corner values (TL, TR, BR, BL), clamped to >= 0. Reused by UIRectMask.
+        /// uniform radius and four per-corner fields laid out as the physical corners (TL TR / BL BR), clamped
+        /// to >= 0. Reused by UIRectMask.
         /// </summary>
         public static void DrawCornerRadius(SerializedProperty independentCorners, SerializedProperty radius)
         {
             independentCorners.boolValue = EditorGUILayout.ToggleLeft("Independent Corners", independentCorners.boolValue);
-            if (independentCorners.boolValue)
+            if (!independentCorners.boolValue)
             {
-                radius.vector4Value = Vector4.Max(EditorGUILayout.Vector4Field("Corner Radius", radius.vector4Value), Vector4.zero);
-            }
-            else
-            {
-                var r = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", radius.vector4Value.x), 0);
+                var r = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", radius.vector4Value.x), 0f);
                 radius.vector4Value = Vector4.one * r;
+                return;
             }
+
+            // radius packs x=TL, y=TR, z=BR, w=BL; lay the fields out as the corners, two per row.
+            Vector4 v = radius.vector4Value;
+            _topCorners[0] = v.x; _topCorners[1] = v.y;
+            _bottomCorners[0] = v.w; _bottomCorners[1] = v.z;
+
+            Rect top = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent("Corner Radius"));
+            EditorGUI.MultiFloatField(top, _topCornerLabels, _topCorners);
+            // Align row 2's fields under row 1's by reusing its x/width; the fresh rect only supplies the new line.
+            Rect line2 = EditorGUILayout.GetControlRect();
+            Rect bottom = new(top.x, line2.y, top.width, line2.height);
+            EditorGUI.MultiFloatField(bottom, _bottomCornerLabels, _bottomCorners);
+
+            v.x = Mathf.Max(_topCorners[0], 0f); v.y = Mathf.Max(_topCorners[1], 0f);
+            v.w = Mathf.Max(_bottomCorners[0], 0f); v.z = Mathf.Max(_bottomCorners[1], 0f);
+            radius.vector4Value = v;
         }
 
         protected virtual void OnEnable()
