@@ -6,23 +6,23 @@ using UnityEngine.UI;
 namespace UIRect
 {
     /// <summary>
-    /// Inspector for <see cref="UIRectMask"/>. Hides the fallback <c>radius</c> field when a UIRect sibling
-    /// supplies the radii, surfaces the inherited RectMask2D <c>padding</c>/<c>softness</c>, and warns when
-    /// the Canvas is missing the extra shader channels the masked UIRect children need.
+    /// Inspector for <see cref="UIRectMask"/>. Hides the fallback radius control when a UIRect sibling supplies
+    /// the radii (otherwise draws UIRect's shared corner-radius control), and warns when the Canvas is missing
+    /// the extra shader channels the masked UIRect children need. The inherited RectMask2D
+    /// <c>padding</c>/<c>softness</c> are intentionally not shown — they only affect the base rect clip, which
+    /// rounded children bypass.
     /// </summary>
     [CustomEditor(typeof(UIRectMask))]
     [CanEditMultipleObjects]
     public class UIRectMaskEditor : Editor
     {
+        private SerializedProperty _independentCorners;
         private SerializedProperty _radius;
-        private SerializedProperty _padding;
-        private SerializedProperty _softness;
 
         private void OnEnable()
         {
+            _independentCorners = serializedObject.FindProperty("independentCorners");
             _radius = serializedObject.FindProperty("radius");
-            _padding = serializedObject.FindProperty("m_Padding");   // inherited from RectMask2D
-            _softness = serializedObject.FindProperty("m_Softness"); // inherited from RectMask2D
         }
 
         public override void OnInspectorGUI()
@@ -37,10 +37,7 @@ namespace UIRect
                                         "radius, animated included). Remove that component to set radii here.",
                                         MessageType.None);
             else
-                EditorGUILayout.PropertyField(_radius, new GUIContent("Corner Radius (TL, TR, BR, BL)"));
-
-            if (_padding != null) EditorGUILayout.PropertyField(_padding);
-            if (_softness != null) EditorGUILayout.PropertyField(_softness);
+                UIRectEditorBase.DrawCornerRadius(_independentCorners, _radius);
 
             var canvas = mask.GetComponentInParent<Canvas>();
             if (canvas != null)

@@ -29,6 +29,7 @@ namespace UIRect
     {
         [Tooltip("Corner radii (TL, TR, BR, BL) used when there is no UIRect on this GameObject to read " +
                  "them from. If a UIRectImage/UIRectRawImage sibling exists, its radius is used instead.")]
+        public bool independentCorners = false;
         public Vector4 radius = new(15, 15, 15, 15);
 
         private UIRectMaskMaterials _materials;

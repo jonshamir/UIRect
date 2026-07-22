@@ -45,6 +45,24 @@ namespace UIRect
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
 
+        /// <summary>
+        /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a single
+        /// uniform radius and four per-corner values (TL, TR, BR, BL), clamped to >= 0. Reused by UIRectMask.
+        /// </summary>
+        public static void DrawCornerRadius(SerializedProperty independentCorners, SerializedProperty radius)
+        {
+            independentCorners.boolValue = EditorGUILayout.ToggleLeft("Independent Corners", independentCorners.boolValue);
+            if (independentCorners.boolValue)
+            {
+                radius.vector4Value = Vector4.Max(EditorGUILayout.Vector4Field("Corner Radius", radius.vector4Value), Vector4.zero);
+            }
+            else
+            {
+                var r = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", radius.vector4Value.x), 0);
+                radius.vector4Value = Vector4.one * r;
+            }
+        }
+
         protected virtual void OnEnable()
         {
             _color = serializedObject.FindProperty("m_Color");
@@ -99,16 +117,7 @@ namespace UIRect
             EditorGUILayout.PropertyField(_fillColor);
             DrawContentField();
 
-            _independentCorners.boolValue = EditorGUILayout.ToggleLeft("Independent Corners", _independentCorners.boolValue);
-            if (_independentCorners.boolValue)
-            {
-                _radius.vector4Value = Vector4.Max(EditorGUILayout.Vector4Field("Corner Radius", _radius.vector4Value), Vector4.zero);
-            }
-            else
-            {
-                var radius = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", _radius.vector4Value.x), 0);
-                _radius.vector4Value = Vector4.one * radius;
-            }
+            DrawCornerRadius(_independentCorners, _radius);
 
             EditorGUILayout.PropertyField(_translate);
 
