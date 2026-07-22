@@ -45,15 +45,15 @@ namespace UIRect
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
 
-        private static readonly GUIContent[] _topCornerLabels = { new("TL"), new("TR") };
-        private static readonly GUIContent[] _bottomCornerLabels = { new("BL"), new("BR") };
-        private static readonly float[] _topCorners = new float[2];
-        private static readonly float[] _bottomCorners = new float[2];
+        private static readonly GUIContent _tlGlyph = new("┌", "Top-left");
+        private static readonly GUIContent _trGlyph = new("┐", "Top-right");
+        private static readonly GUIContent _blGlyph = new("└", "Bottom-left");
+        private static readonly GUIContent _brGlyph = new("┘", "Bottom-right");
 
         /// <summary>
         /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a single
-        /// uniform radius and four per-corner fields laid out as the physical corners (TL TR / BL BR), clamped
-        /// to >= 0. Reused by UIRectMask.
+        /// uniform radius and four per-corner fields laid out as the physical corners, with the glyphs turned
+        /// inward so ┌┐└┘ meet as a little square between the columns. Values clamped to >= 0. Reused by UIRectMask.
         /// </summary>
         public static void DrawCornerRadius(SerializedProperty independentCorners, SerializedProperty radius)
         {
@@ -65,21 +65,44 @@ namespace UIRect
                 return;
             }
 
-            // radius packs x=TL, y=TR, z=BR, w=BL; lay the fields out as the corners, two per row.
+            // radius packs x=TL, y=TR, z=BR, w=BL. Left column keeps its glyph on the right, right column on the
+            // left, so the four glyphs face each other in the middle.
+            Rect row1 = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent("Corner Radius"));
+            Rect row2 = EditorGUILayout.GetControlRect();
+            row2 = new(row1.x, row2.y, row1.width, row2.height);
+
+            const float gap = 6f;
+            float colW = (row1.width - gap) * 0.5f;
             Vector4 v = radius.vector4Value;
-            _topCorners[0] = v.x; _topCorners[1] = v.y;
-            _bottomCorners[0] = v.w; _bottomCorners[1] = v.z;
 
-            Rect top = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent("Corner Radius"));
-            EditorGUI.MultiFloatField(top, _topCornerLabels, _topCorners);
-            // Align row 2's fields under row 1's by reusing its x/width; the fresh rect only supplies the new line.
-            Rect line2 = EditorGUILayout.GetControlRect();
-            Rect bottom = new(top.x, line2.y, top.width, line2.height);
-            EditorGUI.MultiFloatField(bottom, _bottomCornerLabels, _bottomCorners);
+            int indent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+            v.x = CornerField(new(row1.x, row1.y, colW, row1.height), _tlGlyph, v.x, glyphOnRight: true);
+            v.y = CornerField(new(row1.xMax - colW, row1.y, colW, row1.height), _trGlyph, v.y, glyphOnRight: false);
+            v.w = CornerField(new(row2.x, row2.y, colW, row2.height), _blGlyph, v.w, glyphOnRight: true);
+            v.z = CornerField(new(row2.xMax - colW, row2.y, colW, row2.height), _brGlyph, v.z, glyphOnRight: false);
+            EditorGUI.indentLevel = indent;
 
-            v.x = Mathf.Max(_topCorners[0], 0f); v.y = Mathf.Max(_topCorners[1], 0f);
-            v.w = Mathf.Max(_bottomCorners[0], 0f); v.z = Mathf.Max(_bottomCorners[1], 0f);
             radius.vector4Value = v;
+        }
+
+        // Draws one corner's float field with its glyph on the given side; returns the value clamped to >= 0.
+        private static float CornerField(Rect cell, GUIContent glyph, float value, bool glyphOnRight)
+        {
+            const float glyphW = 13f;
+            Rect glyphRect, fieldRect;
+            if (glyphOnRight)
+            {
+                fieldRect = new(cell.x, cell.y, cell.width - glyphW, cell.height);
+                glyphRect = new(cell.xMax - glyphW, cell.y, glyphW, cell.height);
+            }
+            else
+            {
+                glyphRect = new(cell.x, cell.y, glyphW, cell.height);
+                fieldRect = new(cell.x + glyphW, cell.y, cell.width - glyphW, cell.height);
+            }
+            EditorGUI.LabelField(glyphRect, glyph);
+            return Mathf.Max(EditorGUI.FloatField(fieldRect, value), 0f);
         }
 
         protected virtual void OnEnable()
