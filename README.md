@@ -27,6 +27,7 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
 - **RawImage Variant** - `UIRectRawImage` for videos, RenderTextures, and other dynamic textures
+- **Rounded Masking** - `UIRectMask` clips children to a rounded rect, correct even when rotated or scaled
 
 ## Installation
 
@@ -199,6 +200,20 @@ public class UIRectButton : MonoBehaviour
     }
 }
 ```
+
+## Masking
+
+Add a `UIRectMask` component to clip child UI with a rounded, antialiased mask. Unlike the built-in `RectMask2D`, it
+stays correct when the mask is rotated or scaled.
+
+```csharp
+// Add to a GameObject to clip its children to rounded corners
+UIRectMask mask = gameObject.AddComponent<UIRectMask>();
+mask.radius = new Vector4(20, 20, 20, 20);
+```
+
+Clips other **UIRect** graphics out of the box. To clip **TextMeshPro** text, import the **TextMeshPro Masking**
+sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essentials imported.
 
 ## Performance Notes
 
