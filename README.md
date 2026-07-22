@@ -27,7 +27,7 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **GPU-Accelerated** - All rendering done in shader for optimal performance
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
 - **RawImage Variant** - `UIRectRawImage` for videos, RenderTextures, and other dynamic textures
-- **Rounded Masking** - `UIRectMask` clips children to a rounded rect, correct even when rotated or scaled
+- **Masking** - `UIRectMask` clips children to a rounded rect
 
 ## Installation
 
