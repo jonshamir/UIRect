@@ -230,4 +230,12 @@ sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essential
 ## Credits
 
 Created by [Jon Shamir](https://jonshamir.com)
+
 Shadow effects based on [Fast Rounded Rectangle Shadows by Evan Wallace](https://madebyevan.com/shaders/fast-rounded-rectangle-shadows/)
+
+### Was this made with AI?
+
+I've been using the core of this library on projects ever since 2021, before the AI coding era. However, AI enabled me
+to package it up nicely and release it, adding features, documentation, etc.
+
+Feel free to open issues or PRs.
