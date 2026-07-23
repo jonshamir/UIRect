@@ -1,25 +1,7 @@
-// Signed distance field of a rounded rectangle & its gradient vector
-// .x = f(p)
-// .y = ∂f(p)/∂x
-// .z = ∂f(p)/∂y
-// .yz = ∇f(p) with ‖∇f(p)‖ = 1
-// https://www.shadertoy.com/view/wlcXD2
-float3 sdgRoundedBox(in float2 position, in float2 size, float4 radius)
-{
-    radius = radius.yzxw;
-    radius.xy = (position.x > 0.0) ? radius.xy : radius.zw;
-    radius.x  = (position.y > 0.0) ? radius.x  : radius.y;
+#ifndef UIRECT_UTILS_INCLUDED
+#define UIRECT_UTILS_INCLUDED
 
-    float2 w = abs(position)-(size-radius.x);
-    float2 s = float2(position.x<0.0?-1:1,position.y<0.0?-1:1);
-
-    float g = max(w.x,w.y);
-    float2  q = max(w,0.0);
-    float l = length(q);
-
-    return float3((g>0.0) ? l-radius.x : g-radius.x,
-                s*((g>0.0) ? q / l : ((w.x>w.y) ? float2(1,0) : float2(0,1))));
-}
+#include "SDF.cginc"   // sdgRoundedBox (also shared with the masking clip)
 
 // Retrieves 2 floats from a packed value
 float2 unpack2floats(float value)
@@ -57,3 +39,5 @@ float2 parallaxMapping(float2 texCoords, float3 viewDir, float height)
     float2 p = viewDir.xy / viewDir.z * height;
     return texCoords - p;
 }
+
+#endif // UIRECT_UTILS_INCLUDED

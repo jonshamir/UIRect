@@ -1,7 +1,9 @@
 {
     "name": "JonShamir.UIRect",
     "rootNamespace": "UIRect",
-    "references": [],
+    "references": [
+        "Unity.TextMeshPro"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
@@ -9,6 +11,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.textmeshpro",
+            "expression": "",
+            "define": "UIRECT_TMP"
+        }
+    ],
     "noEngineReferences": false
 }

@@ -45,6 +45,83 @@ namespace UIRect
         /// <summary>Draws the type-specific content source field (e.g. sprite, or texture + uvRect).</summary>
         protected abstract void DrawContentField();
 
+        private static readonly GUIContent _tlGlyph = new("┌", "Top-left");
+        private static readonly GUIContent _trGlyph = new("┐", "Top-right");
+        private static readonly GUIContent _blGlyph = new("└", "Bottom-left");
+        private static readonly GUIContent _brGlyph = new("┘", "Bottom-right");
+        private static readonly GUIContent _cornerRadiusLabel = new("Corner Radius");
+
+        // The extra UV channels the UIRect shader packs style data into.
+        private const AdditionalCanvasShaderChannels RequiredChannels =
+            AdditionalCanvasShaderChannels.TexCoord1 |
+            AdditionalCanvasShaderChannels.TexCoord2 |
+            AdditionalCanvasShaderChannels.TexCoord3;
+
+        /// <summary>Shows a HelpBox when <paramref name="canvas"/> is null or missing the additional
+        /// shader channels UIRect graphics need. Shared by all UIRect inspectors.</summary>
+        public static void DrawShaderChannelWarning(Canvas canvas, MessageType severity)
+        {
+            if (canvas != null && (canvas.additionalShaderChannels & RequiredChannels) == RequiredChannels)
+                return;
+            EditorGUILayout.HelpBox("Enable \"TexCoord1\", \"TexCoord2\" and \"TexCoord3\" in the Canvas' " +
+                                    "\"Additional Shader Channels\" so UIRect graphics render correctly.", severity);
+        }
+
+        /// <summary>
+        /// Draws the shared corner-radius control: an "Independent Corners" toggle switching between a
+        /// single uniform radius and four per-corner fields laid out as the physical corners. Values
+        /// clamped to >= 0. Reused by UIRectMask.
+        /// </summary>
+        public static void DrawCornerRadius(SerializedProperty independentCorners, SerializedProperty radius)
+        {
+            independentCorners.boolValue = EditorGUILayout.ToggleLeft("Independent Corners", independentCorners.boolValue);
+            if (!independentCorners.boolValue)
+            {
+                var r = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", radius.vector4Value.x), 0f);
+                radius.vector4Value = Vector4.one * r;
+                return;
+            }
+
+            // radius packs x=TL, y=TR, z=BR, w=BL. Left column keeps its glyph on the right, right column on the
+            // left, so the four glyphs face each other in the middle.
+            Rect row1 = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), _cornerRadiusLabel);
+            Rect row2 = EditorGUILayout.GetControlRect();
+            row2 = new(row1.x, row2.y, row1.width, row2.height);
+
+            const float gap = 6f;
+            float colW = (row1.width - gap) * 0.5f;
+            Vector4 v = radius.vector4Value;
+
+            int indent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+            v.x = CornerField(new(row1.x, row1.y, colW, row1.height), _tlGlyph, v.x, glyphOnRight: true);
+            v.y = CornerField(new(row1.xMax - colW, row1.y, colW, row1.height), _trGlyph, v.y, glyphOnRight: false);
+            v.w = CornerField(new(row2.x, row2.y, colW, row2.height), _blGlyph, v.w, glyphOnRight: true);
+            v.z = CornerField(new(row2.xMax - colW, row2.y, colW, row2.height), _brGlyph, v.z, glyphOnRight: false);
+            EditorGUI.indentLevel = indent;
+
+            radius.vector4Value = v;
+        }
+
+        // Draws one corner's float field with its glyph on the given side; returns the value clamped to >= 0.
+        private static float CornerField(Rect cell, GUIContent glyph, float value, bool glyphOnRight)
+        {
+            const float glyphW = 13f;
+            Rect glyphRect, fieldRect;
+            if (glyphOnRight)
+            {
+                fieldRect = new(cell.x, cell.y, cell.width - glyphW, cell.height);
+                glyphRect = new(cell.xMax - glyphW, cell.y, glyphW, cell.height);
+            }
+            else
+            {
+                glyphRect = new(cell.x, cell.y, glyphW, cell.height);
+                fieldRect = new(cell.x + glyphW, cell.y, cell.width - glyphW, cell.height);
+            }
+            EditorGUI.LabelField(glyphRect, glyph);
+            return Mathf.Max(EditorGUI.FloatField(fieldRect, value), 0f);
+        }
+
         protected virtual void OnEnable()
         {
             _color = serializedObject.FindProperty("m_Color");
@@ -85,30 +162,14 @@ namespace UIRect
             serializedObject.Update();
 
             var graphic = (Graphic)target;
-            if (graphic.canvas == null ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord1) ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord2) ||
-                !graphic.canvas.additionalShaderChannels.HasFlag(AdditionalCanvasShaderChannels.TexCoord3))
-            {
-                EditorGUILayout.HelpBox("Make sure that \"TexCoord1\", \"TexCoord2\" and \"TexCoord3\" are enabled" +
-                                        " in \"Additional Shader Channels\" on the Canvas", MessageType.Error, true);
-            }
+            DrawShaderChannelWarning(graphic.canvas, MessageType.Error);
 
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(_color, new GUIContent("Tint Color"));
             EditorGUILayout.PropertyField(_fillColor);
             DrawContentField();
 
-            _independentCorners.boolValue = EditorGUILayout.ToggleLeft("Independent Corners", _independentCorners.boolValue);
-            if (_independentCorners.boolValue)
-            {
-                _radius.vector4Value = Vector4.Max(EditorGUILayout.Vector4Field("Corner Radius", _radius.vector4Value), Vector4.zero);
-            }
-            else
-            {
-                var radius = Mathf.Max(EditorGUILayout.FloatField("Corner Radius", _radius.vector4Value.x), 0);
-                _radius.vector4Value = Vector4.one * radius;
-            }
+            DrawCornerRadius(_independentCorners, _radius);
 
             EditorGUILayout.PropertyField(_translate);
 
@@ -245,8 +306,10 @@ namespace UIRect
 
         #region Menu creation
 
-        /// <summary>Shared "GameObject/UI/..." factory used by the UIRectImage and UIRectRawImage menu items.</summary>
-        protected static void CreateUIRectObject<T>(string name, MenuCommand menuCommand) where T : Graphic
+        /// <summary>Shared "GameObject/UI/..." factory used by the UIRect menu items. Returns the
+        /// created object so callers can add extra components (still covered by the undo entry).</summary>
+        internal static GameObject CreateUIRectObject<T>(string name, MenuCommand menuCommand, float size = 100f)
+            where T : Graphic
         {
             GameObject go = new GameObject(name);
             go.AddComponent<T>();
@@ -264,10 +327,11 @@ namespace UIRect
             GameObjectUtility.SetParentAndAlign(go, menuCommand.context as GameObject ?? canvas.gameObject);
 
             RectTransform rt = go.GetComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(100, 100);
+            rt.sizeDelta = new Vector2(size, size);
 
             Undo.RegisterCreatedObjectUndo(go, "Create " + name);
             Selection.activeObject = go;
+            return go;
         }
 
         #endregion

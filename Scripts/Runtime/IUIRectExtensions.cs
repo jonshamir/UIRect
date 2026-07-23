@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace UIRect
 {
@@ -10,6 +11,10 @@ namespace UIRect
     /// </summary>
     public static class IUIRectExtensions
     {
+        /// <summary>Whether the host renders with the bevel shader variant. Single home for the
+        /// predicate so a masked child and its own defaultMaterial always pick the same variant.</summary>
+        public static bool UsesBevel(this IUIRect h) => Mathf.Min(h.BevelWidth, h.BevelStrength) > 0f;
+
         /// <summary>
         /// Builds a fully-populated <see cref="UIRectStyle"/> from the host's current values.
         /// Allocates a fresh shadow list each call — avoid polling per frame.

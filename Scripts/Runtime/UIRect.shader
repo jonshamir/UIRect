@@ -61,6 +61,8 @@ Shader "UI/UIRect"
             #pragma multi_compile __ UNITY_UI_CLIP_RECT
             #pragma multi_compile __ UNITY_UI_ALPHACLIP
             #pragma multi_compile_local __ _USE_BEVELS
+            // shader_feature so the UIRectMask variant is stripped from builds that never use masking.
+            #pragma shader_feature_local __ _ROUNDED_CLIP
 
             // Precomputed constants
             #define INV_GAMMA 0.45454545      // 1/2.2
@@ -93,7 +95,7 @@ Shader "UI/UIRect"
                 float4 uv2 : TEXCOORD3;
                 float4 uv3 : TEXCOORD5;
                 float3 objViewDir : TEXCOORD4;  // Object-space vertex→camera (unnormalized), for parallax/bevel
-                float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (canvas space)
+                float4 clipPosition : TEXCOORD6;  // For RectMask2d clipping (root-canvas space)
 
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -103,6 +105,8 @@ Shader "UI/UIRect"
             half4 _TextureSampleAdd;
             float4 _ClipRect;
             float4 _MainTex_ST;
+
+            #include "Masking/RoundedClip.cginc"  // roundedClipCoverage() + its uniforms
 
             #define BOX_RENDER_MODE_FILL 0
             #define BOX_RENDER_MODE_SHADOW 1
@@ -115,7 +119,7 @@ Shader "UI/UIRect"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(OUT);
                 // Object-space view dir for the parallax/bevel paths
                 OUT.objViewDir = ObjSpaceViewDir(v.vertex);
-                OUT.clipPosition = v.vertex;  // For RectMask2d clipping (canvas space)
+                OUT.clipPosition = v.vertex;  // For RectMask2d clipping (root-canvas space)
                 OUT.vertex = UnityObjectToClipPos(v.vertex);
                 
                 OUT.uv = TRANSFORM_TEX(v.uv0, _MainTex);
@@ -147,12 +151,19 @@ Shader "UI/UIRect"
                 if (boxRenderMode == BOX_RENDER_MODE_FILL)
                     color *= pow(tex2Dgrad(_MainTex, IN.uv, uvDdx, uvDdy) + _TextureSampleAdd, INV_GAMMA);
 
-                #ifdef UNITY_UI_CLIP_RECT
-                color.a *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
+                // Clip coverage (rect + optional rounded). Applied to the FINAL composited alpha at each
+                // return below, so borders/shadows/bevels are clipped too — not just the fill.
+                float clipCoverage = 1.0;
+                // The rounded clip replaces the rect clip, whose _ClipRect degenerates when the mask is rotated.
+                #if defined(UNITY_UI_CLIP_RECT) && !defined(_ROUNDED_CLIP)
+                clipCoverage *= UnityGet2DClipping(IN.clipPosition.xy, _ClipRect);
+                #endif
+                #ifdef _ROUNDED_CLIP
+                clipCoverage *= roundedClipCoverage(IN.clipPosition.xy);
                 #endif
 
                 #ifdef UNITY_UI_ALPHACLIP
-                clip (color.a - 0.001);
+                clip (color.a * clipCoverage - 0.001);
                 #endif
 
                 float effectWidth = IN.uv2.z;
@@ -195,6 +206,7 @@ Shader "UI/UIRect"
                     float insideMask = smoothstep(0, -pixelWidth, dist); // inside the shape only
 
                     color.a *= (1 - coverage) * insideMask;
+                    color.a *= clipCoverage;
                     return color;
                 }
 
@@ -273,11 +285,13 @@ Shader "UI/UIRect"
                     float mask = blurredRoundedBoxCoverage(pos, size, blur, radius);
 
                     color.a *= mask;
+                    color.a *= clipCoverage;
                     return color;
                 }
 
                 // Remove pixels outside the outer border
                 color.a *= smoothstep(outerDist, outerDist - pixelWidth, dist);
+                color.a *= clipCoverage;
 
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 color.rgb = pow(color.rgb, 2.2);

@@ -33,6 +33,11 @@
       "displayName": "Samples",
       "description": "UIRect usage examples",
       "path": "Samples~"
+    },
+    {
+      "displayName": "TextMeshPro Masking",
+      "description": "Shader that lets UIRectMask clip TextMeshPro text to rounded corners. Requires TextMeshPro (with Essentials imported). UIRect masking works without this; import it only to also mask TMP text.",
+      "path": "Samples~/TMPMasking"
     }
   ]
 }
