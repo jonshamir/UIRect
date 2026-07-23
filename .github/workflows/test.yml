@@ -20,16 +20,15 @@ jobs:
           - 6000.0.23f1
 
     steps:
+      # Checkout into a subdirectory: game-ci creates its packageMode TempProject at the
+      # workspace root, and if the package IS the workspace root the project ends up nested
+      # inside the package. Unity then imports TempProject as package assets, hits an infinite
+      # asset-import loop, and never imports UIRect.shader — Shader.Find returns null and every
+      # test that needs the real shader fails. A sibling checkout keeps the project clean.
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Cache Library folder
-        uses: actions/cache@v4
         with:
-          path: Library
-          key: Library-${{ matrix.unity-version }}-${{ hashFiles('**/*.cs', 'package.json') }}
-          restore-keys: |
-            Library-${{ matrix.unity-version }}-
+          path: package
 
       - name: Run tests
         uses: game-ci/unity-test-runner@v4
@@ -38,6 +37,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          projectPath: package
           unityVersion: ${{ matrix.unity-version }}
           testMode: all
           artifactsPath: TestResults
