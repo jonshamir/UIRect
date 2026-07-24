@@ -8,7 +8,7 @@ namespace UIRect
 {
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    public class UIRectImage : Image, IUIRect, ISerializationCallbackReceiver
+    public class UIRectImage : Image, IUIRect
     {
         #region Public Properties
 
@@ -45,11 +45,14 @@ namespace UIRect
         [SerializeField, HideInInspector] private float shadowSpread = 0;
         [SerializeField, HideInInspector] private Vector3 shadowOffset = new Vector2(0, -5);
 
-        public void OnBeforeSerialize() { }
-
-        public void OnAfterDeserialize()
-            => UIRectShadowMigration.Migrate(ref hasShadow, shadowColor, shadowSize, shadowSpread,
+        // Override (not shadow) Image's ISerializationCallbackReceiver hook so its base logic still runs;
+        // chain base, then convert any legacy single-shadow data into the `shadows` list.
+        public override void OnAfterDeserialize()
+        {
+            base.OnAfterDeserialize();
+            UIRectShadowMigration.Migrate(ref hasShadow, shadowColor, shadowSize, shadowSpread,
                 shadowOffset, shadows);
+        }
 
         #endregion
 
