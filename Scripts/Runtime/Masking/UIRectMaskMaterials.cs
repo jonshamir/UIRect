@@ -54,12 +54,14 @@ namespace UIRect
 
         /// <summary>
         /// Pushes the mask's local-space rounded rect (inner radii + half-size) and the canvas→mask-local
-        /// clip matrix onto every owned material (cheap, no dirtying). No-op when nothing changed, so a
-        /// static mask costs nothing per clip phase.
+        /// clip matrix onto every owned material (cheap, no dirtying). Skips the write when nothing changed
+        /// (so a static mask costs nothing per clip phase) unless <paramref name="force"/> is set — used to
+        /// restore uniforms cleared externally (a scene save wipes them; see <see cref="UIRectMask"/>),
+        /// which a plain push would skip since the cached values still match.
         /// </summary>
-        public void PushClip(Vector4 localRadii, Vector2 localHalfSize, Matrix4x4 clipToLocal)
+        public void PushClip(Vector4 localRadii, Vector2 localHalfSize, Matrix4x4 clipToLocal, bool force = false)
         {
-            if (localRadii == _radii && localHalfSize == _halfSize && clipToLocal == _clipToLocal)
+            if (!force && localRadii == _radii && localHalfSize == _halfSize && clipToLocal == _clipToLocal)
                 return;
 
             _radii = localRadii;

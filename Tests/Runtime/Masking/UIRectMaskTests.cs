@@ -155,6 +155,35 @@ namespace UIRect.Tests
             Object.DestroyImmediate(canvasGO);
         }
 
+        // --- clip-uniform durability (survive an external wipe, e.g. a scene save) ------------------
+
+        [Test]
+        public void RefreshMask_RestoresClipUniforms_AfterExternalWipe()
+        {
+            var child = AddUIRectChild();
+            _mask.GetComponent<UIRectImage>().radius = new Vector4(40, 40, 40, 40);
+            _mask.RefreshMask();
+
+            Material mat = child.material;
+            Assume.That(mat.GetVector(ClipHalfSizeId).x, Is.GreaterThan(0f),
+                "Precondition: the clip half-size uniform should be set after RefreshMask.");
+
+            // Simulate what saving the scene does: it clears these (undeclared) clip uniforms off the
+            // HideAndDontSave material, leaving the shader clipping every fragment (children vanish).
+            mat.SetVector(ClipHalfSizeId, Vector4.zero);
+            mat.SetVector(ClipRadiiId, Vector4.zero);
+            Assume.That(mat.GetVector(ClipHalfSizeId).x, Is.EqualTo(0f), "Precondition: uniforms wiped.");
+
+            // The fix: RefreshMask must force-restore the uniforms even though the computed values are
+            // unchanged (the material lost them, but the cache still matches — the plain early-out would skip).
+            _mask.RefreshMask();
+
+            Assert.AreEqual(50f, mat.GetVector(ClipHalfSizeId).x, 1e-2f,
+                "RefreshMask must re-push the clip half-size after it was cleared externally (scene save).");
+            Assert.Greater(mat.GetVector(ClipRadiiId).x, 0f,
+                "RefreshMask must re-push the clip radii after an external wipe.");
+        }
+
         // --- teardown (opt-in / zero residue) ------------------------------------------------------
 
         [Test]

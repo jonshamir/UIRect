@@ -41,13 +41,33 @@ namespace UIRect
             _sibling = GetComponent<IUIRect>();
             _canvas = null;
             RefreshMask();
+#if UNITY_EDITOR
+            UnityEditor.SceneManagement.EditorSceneManager.sceneSaved += OnSceneSaved;
+#endif
         }
 
         protected override void OnDisable()
         {
             base.OnDisable();
             _materials?.Dispose(); // restores every child, destroys owned materials
+#if UNITY_EDITOR
+            UnityEditor.SceneManagement.EditorSceneManager.sceneSaved -= OnSceneSaved;
+#endif
         }
+
+#if UNITY_EDITOR
+        // Saving the scene wipes the (undeclared) clip uniforms off this mask's HideAndDontSave materials, so
+        // the shader clips every child away until the clip is re-pushed — which previously only a manual
+        // transform change did. Re-apply after each save (RefreshMask force-writes; our cached values still
+        // match, so a plain push would be skipped), then repaint since the material changed under the renderer.
+        private void OnSceneSaved(UnityEngine.SceneManagement.Scene scene)
+        {
+            if (!isActiveAndEnabled)
+                return;
+            RefreshMask();
+            UnityEditor.SceneView.RepaintAll();
+        }
+#endif
 
         private void OnTransformChildrenChanged()
         {
@@ -118,7 +138,9 @@ namespace UIRect
         public void RefreshMask()
         {
             SyncTargets();
-            PushClipToMaterials(RootCanvas());
+            // force: an explicit refresh must re-push the clip uniforms even when the computed values are
+            // unchanged, so it restores uniforms that were cleared externally (see OnSceneSaved).
+            PushClipToMaterials(RootCanvas(), force: true);
         }
 
         private void SyncTargets()
@@ -163,11 +185,11 @@ namespace UIRect
             }
         }
 
-        private void PushClipToMaterials(Canvas rootCanvas)
+        private void PushClipToMaterials(Canvas rootCanvas, bool force = false)
         {
             if (_materials == null) return;
             var (radii, halfSize, clipToLocal) = ComputeClip(rootCanvas);
-            _materials.PushClip(radii, halfSize, clipToLocal);
+            _materials.PushClip(radii, halfSize, clipToLocal, force);
         }
 
         // The mask's rounded rect in its own local space — inner radii (outer minus border inset, concentric)
