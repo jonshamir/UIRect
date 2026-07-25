@@ -1,3 +1,5 @@
+![UIRect](Docs~/cover.png)
+
 # UIRect
 
 [![Unity 2021.3+](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)](https://unity.com/)
