@@ -219,7 +219,7 @@ sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essential
 
 ## Editor
 
-`UIRect` comes with a custom editor UI to easily tweak properties from the Unity inspector panel. All propertied render
+`UIRect` comes with a custom editor UI to easily tweak properties from the Unity inspector panel. All properties render
 live in edit mode for easy previews.
 
 <img src="Docs~/inspector.png" alt="The UIRectImage inspector" width="340">
@@ -230,7 +230,7 @@ live in edit mode for easy previews.
 - Animations tick from `Canvas.preWillRenderCanvases` rather than per-component `Update()` calls
 - Animations use unscaled time, so they keep running while the game is paused (`Time.timeScale = 0`)
 - Minimal CPU overhead during animations
-- Shares materials between instances to supports batching
+- Shares materials between instances to support batching
 
 ## Compatibility
 
