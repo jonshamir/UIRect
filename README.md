@@ -13,6 +13,21 @@ UIRect extends the standard Image component with styling capabilities including 
 - Custom editor for tweaking in Unity
 - Scripting API loosely inspired by CSS
 
+## Contents
+
+- [Why is this needed?](#why-is-this-needed)
+- [Features](#features)
+- [Installation](#installation)
+- [Editor](#editor)
+
+- [Basic Usage](#basic-usage)
+- [Animation](#animation)
+- [Bevels](#bevels)
+- [Masking](#masking)
+- [Performance Notes](#performance-notes)
+- [Compatibility](#compatibility)
+- [Credits](#credits)
+
 ## Why is this needed?
 
 Although Unity has been pushing [UI Toolkit](https://docs.unity3d.com/6000.1/Documentation/Manual/UIElements.html) as the main UI framework for Unity apps, uGUI remains widely used for its simplicity, familiarity and true 3D world-space support.
@@ -53,6 +68,13 @@ This package attempts to fix this by creating a free and open source UI primitiv
 ### Getting Started
 
 Add a `UIRectImage` component to any UI GameObject (replaces Unity's Image component), or use the menu: **GameObject > UI > UIRect**
+
+## Editor
+
+`UIRect` comes with a custom editor UI to easily tweak properties from the Unity inspector panel. All properties render
+live in edit mode for easy previews.
+
+<img src="Docs~/inspector.png" alt="The UIRectImage inspector" width="340">
 
 ## Basic Usage
 
@@ -211,7 +233,7 @@ public class UIRectButton : MonoBehaviour
 
 ## Bevels
 
-Bevels shade the edge of the rect to give it a raised, three-dimentional look, with a specular highlight and
+Bevels shade the edge of the rect to give it a raised, three-dimensional look, with a specular highlight and
 parallax mapping that responds to the viewing angle.
 
 ![Nested beveled rounded rectangles](Docs~/bevels.gif)
@@ -230,13 +252,6 @@ mask.radius = new Vector4(20, 20, 20, 20);
 
 Clips other **UIRect** graphics out of the box. To clip **TextMeshPro** text, import the **TextMeshPro Masking**
 sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essentials imported.
-
-## Editor
-
-`UIRect` comes with a custom editor UI to easily tweak properties from the Unity inspector panel. All properties render
-live in edit mode for easy previews.
-
-<img src="Docs~/inspector.png" alt="The UIRectImage inspector" width="340">
 
 ## Performance Notes
 
