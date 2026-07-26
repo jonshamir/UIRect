@@ -13,7 +13,7 @@ namespace UIRect
     {
         Fill, Shadow, InnerShadow
     }
-
+    
     public struct UIRectStyle
     {
         public Color? FillColor;

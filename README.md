@@ -217,10 +217,17 @@ mask.radius = new Vector4(20, 20, 20, 20);
 Clips other **UIRect** graphics out of the box. To clip **TextMeshPro** text, import the **TextMeshPro Masking**
 sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essentials imported.
 
+## Editor
+
+`UIRect` comes with a custom editor UI to easily tweak properties from the Unity inspector panel. All propertied render
+live in edit mode for easy previews.
+
+<img src="Docs~/inspector.png" alt="The UIRectImage inspector" width="340">
+
 ## Performance Notes
 
 - All rendering is GPU-accelerated via custom shader
-- Animation ticking runs in `Update()` and early-outs cheaply when the component is idle
+- Animations tick from `Canvas.preWillRenderCanvases` rather than per-component `Update()` calls
 - Animations use unscaled time, so they keep running while the game is paused (`Time.timeScale = 0`)
 - Minimal CPU overhead during animations
 - Shares materials between instances to supports batching

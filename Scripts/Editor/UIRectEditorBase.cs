@@ -176,7 +176,7 @@ namespace UIRect
             // Border
             GUILayout.Space(10);
             EditorGUILayout.PropertyField(_borderColor);
-            _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Thickness", _borderWidth.floatValue), 0);
+            _borderWidth.floatValue = Mathf.Max(EditorGUILayout.FloatField("Border Width", _borderWidth.floatValue), 0);
             EditorGUILayout.PropertyField(_borderAlign);
 
             // Bevel
