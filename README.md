@@ -19,6 +19,8 @@ Although Unity has been pushing [UI Toolkit](https://docs.unity3d.com/6000.1/Doc
 However, creating basic effects such as borders and rounded corners remains surprisingly difficult with multiple assets and libraries, some paid and some free, with various issues (Not all effects are supported, no proper antialiasing, performance issues, etc.)
 This package attempts to fix this by creating a free and open source UI primitive to build on.
 
+![Features: rounding, borders, shadows, bevels](Docs~/lineup.png)
+
 ## Features
 
 - **Rounded Corners** - Independent control for each corner radius
@@ -31,7 +33,9 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **RawImage Variant** - `UIRectRawImage` for videos, RenderTextures, and other dynamic textures
 - **Masking** - `UIRectMask` clips children to a rounded rect
 
-![Features: rounding, borders, shadows, bevels](Docs~/lineup.png)
+![Aliasing artifacts on a plain rounded rect versus UIRect's antialiased edge](Docs~/aa.gif)
+
+*Left: rounded rectangle displaying aliasing artifacts. Right: UIRect.*
 
 ## Installation
 
