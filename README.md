@@ -3,7 +3,7 @@
 # UIRect
 
 [![Unity 2021.3+](https://img.shields.io/badge/Unity-2021.3%2B-blue.svg)](https://unity.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 
 UIRect is a rounded rectangle-drawing library for Unity UI (a.k.a. uGUI)
 UIRect extends the standard Image component with styling capabilities including rounded corners, borders, shadows, and animations.
@@ -233,7 +233,7 @@ sample (Package Manager > UIRect > Samples); requires TextMeshPro with Essential
 
 Created by [Jon Shamir](https://jonshamir.com)
 
-Shadow effects based on [Fast Rounded Rectangle Shadows by Evan Wallace](https://madebyevan.com/shaders/fast-rounded-rectangle-shadows/)
+Shadow effects based on [Fast Rounded Rectangle Shadows by Evan Wallace](https://madebyevan.com/shaders/fast-rounded-rectangle-shadows/), released under [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
 
 ### Was this made with AI?
 

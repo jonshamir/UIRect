@@ -39,8 +39,10 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
 
-          # Extract the changelog section for this version
-          CHANGELOG=$(awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md)
+          # Extract the changelog section for this version (the file is optional)
+          if [ -f CHANGELOG.md ]; then
+            CHANGELOG=$(awk "/## \[$VERSION\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md)
+          fi
 
           if [ -z "$CHANGELOG" ]; then
             CHANGELOG="Release v$VERSION"
