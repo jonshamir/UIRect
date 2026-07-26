@@ -209,6 +209,14 @@ public class UIRectButton : MonoBehaviour
 }
 ```
 
+## Bevels
+
+Bevels shade the edge of the rect to give it a raised, three-dimentional look, with a specular highlight and
+parallax mapping that responds to the viewing angle.
+
+![Nested beveled rounded rectangles](Docs~/bevels.gif)
+
+
 ## Masking
 
 Add a `UIRectMask` component to clip child UI with a rounded, antialiased mask. Unlike the built-in `RectMask2D`, it
