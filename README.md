@@ -1,4 +1,4 @@
-![UIRect](Docs~/cover.png)
+![Round your rectangles](Docs~/cover.png)
 
 # UIRect
 
@@ -30,6 +30,8 @@ This package attempts to fix this by creating a free and open source UI primitiv
 - **No Dependencies** - Pure Unity implementation, no third-party packages required
 - **RawImage Variant** - `UIRectRawImage` for videos, RenderTextures, and other dynamic textures
 - **Masking** - `UIRectMask` clips children to a rounded rect
+
+![Features: rounding, borders, shadows, bevels](Docs~/lineup.png)
 
 ## Installation
 
