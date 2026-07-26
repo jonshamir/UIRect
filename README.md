@@ -8,7 +8,7 @@
 UIRect is a rounded rectangle-drawing library for Unity UI (a.k.a. uGUI)
 UIRect extends the standard Image component with styling capabilities including rounded corners, borders, shadows, and animations.
 - Basic UI features you would expect - fill, rounding, border, shadow, etc.
-- High-quality, antialiased rendering with
+- High-quality, crisp antialiased edges at any size
 - Performant, no external dependencies
 - Custom editor for tweaking in Unity
 - Scripting API loosely inspired by CSS
